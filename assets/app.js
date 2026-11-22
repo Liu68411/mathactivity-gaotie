@@ -156,6 +156,7 @@ function renderAll() {
   renderSpeedChart(result);
   renderBreakdown(result);
   renderTable(result);
+  renderPrintSummary(result);
   renderReport(result);
 
   if (state.actualRevealed) {
@@ -680,6 +681,33 @@ function renderCompareChart(result) {
   }
 }
 
+function renderPrintSummary(result) {
+  const target = $('#printSummary');
+  if (!target) return;
+  if (!result.valid) {
+    target.innerHTML = '<p>当前假设无法完成 536 千米，请调整参数后再打印。</p>';
+    return;
+  }
+  const model = modelLabel();
+  let checkLine = '<p><strong>检验：</strong>尚未拆封实际记录。</p>';
+  if (state.actualRevealed) {
+    const error = result.arrivalRounded - state.actualZhengzhouArrival;
+    const direction = error < 0 ? '偏早' : error > 0 ? '偏晚' : '刚好相同';
+    checkLine = `<p><strong>检验：</strong>实际 ${formatClock(
+      state.actualZhengzhouArrival
+    )} 到站，晚点 47 分钟；估计${direction}${error === 0 ? '' : ` ${Math.abs(error)} 分钟`}。最值得再查：限速后的真实速度。</p>`;
+  }
+  target.innerHTML = `
+    <h3>本组假设与第一版估计</h3>
+    <p><strong>估计到站：</strong>${formatClock(result.arrivalRounded)}，${delayText(result.delayRounded)}。</p>
+    <p><strong>假设：</strong>武汉站停站 ${state.dwell} 分钟；出站 ${state.preSlow} 分钟后开始减速；减速前 ${state.v1} 千米/时；限速后 ${state.v2} 千米/时；${model}。</p>
+    <p><strong>里程校验：</strong>减速前 ${result.beforeSlowDistance.toFixed(1)} + 减速后 ${(
+      result.distance - result.beforeSlowDistance
+    ).toFixed(1)} = ${result.distance.toFixed(1)} 千米。</p>
+    ${checkLine}
+  `;
+}
+
 function renderReport(result) {
   if (!result.valid) {
     els.reportText.textContent =
@@ -755,6 +783,7 @@ function resetAll() {
 
 function revealActual() {
   state.actualRevealed = true;
+  document.body.classList.add('has-revealed');
   els.sealedCard.hidden = true;
   els.actualPanel.hidden = false;
   els.legendActual.hidden = false;
@@ -764,6 +793,7 @@ function revealActual() {
 
 function resealActual() {
   state.actualRevealed = false;
+  document.body.classList.remove('has-revealed');
   els.actualPanel.hidden = true;
   els.sealedCard.hidden = false;
   els.legendActual.hidden = true;
@@ -1004,9 +1034,21 @@ function bindEvents() {
   });
 }
 
+function applyInitialReveal() {
+  // 方便老师直接分享“已拆封”的课堂页面；普通访问仍然保持先估后验。
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('revealed') !== '1') return;
+  state.actualRevealed = true;
+  document.body.classList.add('has-revealed');
+  els.sealedCard.hidden = true;
+  els.actualPanel.hidden = false;
+  els.legendActual.hidden = false;
+}
+
 function init() {
   cacheElements();
   restoreGroupFields();
+  applyInitialReveal();
   syncControls();
   bindEvents();
   renderAll();

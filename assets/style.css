@@ -12,7 +12,7 @@
   --ice: #d8ecff;
   --frost: #8fc7e8;
   --amber: #f4ad4f;
-  --amber-deep: #d9822b;
+  --amber-deep: #b56a17;
   --amber-soft: #fff6e8;
   --green: #2fa27f;
   --green-soft: #eaf8f2;
@@ -20,7 +20,7 @@
   --card: #ffffff;
   --ink: #171b2e;
   --muted: #626b86;
-  --muted-2: #7d86a1;
+  --muted-2: #6f7892;
   --line: #dfe4f0;
   --line-strong: #cdd4e4;
   --radius: 26px;
@@ -1515,6 +1515,10 @@ input[type="range"]:focus-visible {
   text-align: center;
   color: var(--muted-2);
   font-size: 11px;
+}
+
+.print-summary {
+  display: none;
 }
 
 /* ---------------------------------------------------------
@@ -3087,12 +3091,18 @@ tfoot tr td:last-child {
    --------------------------------------------------------- */
 
 @media print {
+  @page {
+    size: A4;
+    margin: 13mm 12mm;
+  }
+
   :root {
     --paper: #fff;
     --card: #fff;
     --ink: #111;
     --muted: #444;
-    --line: #ccc;
+    --muted-2: #555;
+    --line: #bbb;
   }
 
   html {
@@ -3101,17 +3111,32 @@ tfoot tr td:last-child {
 
   body {
     background: #fff;
-    font-size: 11pt;
+    color: #111;
+    font-size: 10pt;
+    line-height: 1.55;
   }
 
   body::before,
+  .skip-link,
   .site-header,
   .hero,
-  .sealed-card,
-  .result-hint,
-  .report-actions,
   .site-footer,
   .toast,
+  .sealed-card,
+  #check,
+  .problem-grid,
+  .data-note,
+  .assumptions,
+  .result-sticky,
+  .result-hint,
+  .report-actions,
+  .text-button,
+  .preset-row,
+  .advanced,
+  .assumption-note,
+  .revision-card,
+  .prompt-card,
+  .chart-scroll-hint,
   .chart-card .legend {
     display: none !important;
   }
@@ -3120,9 +3145,14 @@ tfoot tr td:last-child {
     display: block;
   }
 
+  .wrap {
+    width: 100%;
+    max-width: none;
+  }
+
   .section {
-    padding: 12px 0;
-    break-inside: avoid;
+    padding: 6px 0 10px;
+    break-inside: auto;
   }
 
   .section--tint {
@@ -3130,28 +3160,32 @@ tfoot tr td:last-child {
     border: 0;
   }
 
-  .wrap {
-    width: 100%;
-  }
-
   .section-head {
     display: block;
-    margin-bottom: 12px;
+    margin: 0 0 8px;
   }
 
   .section-no {
     display: none;
   }
 
-  .section h2 {
-    font-size: 20pt;
+  .section-kicker {
+    margin: 0 0 2px;
+    color: #7a4a0e;
+    font-size: 7.5pt;
+    letter-spacing: 0.12em;
   }
 
-  .section-lede,
-  .story-card p,
-  .why-card p,
-  .card-note {
-    color: #333;
+  .section h2 {
+    font-size: 17pt;
+    line-height: 1.2;
+  }
+
+  .section-lede {
+    margin-top: 3px;
+    color: #444;
+    font-size: 9pt;
+    line-height: 1.5;
   }
 
   .situation-grid,
@@ -3162,128 +3196,357 @@ tfoot tr td:last-child {
 
   .story-card,
   .data-card,
-  .panel,
   .chart-card,
   .distance-card,
   .formula-card,
   .table-card,
   .timeline-card,
   .report-card,
-  .prompt-card,
-  .why-card {
-    box-shadow: none;
+  .print-summary {
+    margin: 0 0 8px;
+    padding: 10px;
     border: 1px solid #bbb;
-    margin-bottom: 10px;
-    padding: 14px;
+    border-radius: 6px;
+    box-shadow: none;
     break-inside: avoid;
+  }
+
+  .quote-mark,
+  .story-callout svg {
+    display: none;
+  }
+
+  .story-lead {
+    margin-bottom: 4px;
+    font-size: 12.5pt !important;
+    line-height: 1.35 !important;
+  }
+
+  .story-card p {
+    color: #333;
+    font-size: 9pt;
+    line-height: 1.55;
+  }
+
+  .info-grid {
+    gap: 5px;
+    margin-top: 8px;
+  }
+
+  .info-grid > div {
+    min-height: 0;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    background: #fff;
+  }
+
+  .info-grid dt {
+    font-size: 7.5pt;
+    color: #555;
+  }
+
+  .info-grid dd {
+    margin-top: 1px;
+    font-size: 13pt;
+  }
+
+  .data-footnote {
+    margin-top: 6px;
+    font-size: 7.5pt;
   }
 
   .model-grid {
     display: block;
   }
 
-  .assumptions,
+  .print-summary {
+    display: block;
+  }
+
+  .print-summary h3 {
+    margin: 0 0 4px;
+    font-size: 11pt;
+  }
+
+  .print-summary p {
+    margin: 2px 0;
+    color: #333;
+    font-size: 9pt;
+    line-height: 1.5;
+  }
+
   .answer-card {
-    display: block;
-  }
-
-  .result-sticky {
-    display: block;
-    position: static;
-  }
-
-  .result-card {
-    background: #fff !important;
-    color: #111;
-    border: 1px solid #999;
-    box-shadow: none;
-  }
-
-  .result-time,
-  .result-meta dd {
-    color: #111;
-  }
-
-  .result-delay {
+    padding: 10px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
     background: #fff;
-    border-color: #999;
-    color: #111;
+    box-shadow: none;
+    break-inside: avoid;
   }
 
-  .actual-panel {
+  .answer-kicker {
+    font-size: 7.5pt;
+  }
+
+  .answer-line {
+    margin-top: 3px;
+    font-size: 12pt;
+    line-height: 1.45;
+  }
+
+  .answer-line strong {
+    font-size: 16pt;
+  }
+
+  .answer-sub {
+    font-size: 8pt;
+  }
+
+  .answer-stamp {
+    display: none;
+  }
+
+  .chart-card {
+    margin-top: 8px;
+  }
+
+  .chart-head h3 {
+    font-size: 11pt;
+  }
+
+  .chart-head p {
+    font-size: 8pt;
+  }
+
+  .chart-wrap {
+    margin-top: 6px;
+  }
+
+  .chart-wrap svg {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .chart-caption {
+    margin-top: 4px;
+    color: #555;
+    font-size: 7.5pt;
+  }
+
+  .distance-card,
+  .formula-card {
+    padding: 10px;
+  }
+
+  .distance-bar {
+    height: 22px;
+    margin: 8px 0 5px;
+  }
+
+  .distance-legend {
+    gap: 5px;
+  }
+
+  .distance-legend > div {
+    font-size: 8pt;
+  }
+
+  .distance-legend strong {
+    font-size: 8.5pt;
+  }
+
+  .card-note {
+    margin-top: 6px;
+    padding-top: 5px;
+    font-size: 7.5pt;
+  }
+
+  .formula-list {
+    margin-top: 4px;
+  }
+
+  .formula-row {
+    padding: 3px 0;
+    font-size: 8.5pt;
+  }
+
+  .formula-row strong {
+    font-size: 8.5pt;
+  }
+
+  .formula-note {
+    margin-top: 4px;
+    font-size: 7.5pt;
+  }
+
+  .table-card {
+    margin-top: 8px;
+  }
+
+  .table-scroll {
+    overflow: visible;
+  }
+
+  table {
+    min-width: 0;
+  }
+
+  th,
+  td {
+    padding: 4px 5px;
+    font-size: 8.5pt;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-row-group;
+  }
+
+  .seg-name small {
+    font-size: 7pt;
+  }
+
+  .actual-panel[hidden] {
     display: block !important;
   }
 
   .actual-head {
-    display: none;
+    display: block;
+    padding: 8px 10px;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    background: #fff;
+    break-inside: avoid;
+  }
+
+  .actual-head blockquote {
+    margin-top: 4px;
+    padding-left: 10px;
+    font-size: 13pt;
+    line-height: 1.4;
+  }
+
+  .actual-source {
+    margin-top: 3px;
+    font-size: 7.5pt;
   }
 
   .error-grid {
     display: flex;
-    gap: 8px;
+    gap: 6px;
+    margin-top: 8px;
   }
 
   .compare-card {
     flex: 1;
+    padding: 8px;
+    border: 1px solid #bbb;
+    break-inside: avoid;
+  }
+
+  .compare-card > span,
+  .compare-card small {
+    font-size: 7.5pt;
   }
 
   .compare-card strong {
-    font-size: 18pt;
+    font-size: 16pt;
+  }
+
+  .error-banner {
+    margin-top: 6px;
+    padding: 7px 9px;
+    font-size: 9pt;
+    line-height: 1.5;
+    break-inside: avoid;
+  }
+
+  .timeline-card {
+    margin-top: 8px;
+  }
+
+  .compare-chart-wrap svg {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .compare-caption {
+    font-size: 7.5pt;
   }
 
   .why-grid {
-    display: flex;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
   }
 
   .why-card {
-    flex: 1;
-  }
-
-  .revision-card {
-    display: none;
-  }
-
-  .prompt-card {
-    background: #fff !important;
-    color: #111;
+    padding: 8px;
     border: 1px solid #bbb;
+    break-inside: avoid;
   }
 
-  .prompt-card h3,
-  .prompt-card h4,
-  .sentence-list strong {
-    color: #111;
+  .why-no {
+    font-size: 7pt;
   }
 
-  .sentence-list,
-  .check-list li {
+  .why-card h3 {
+    font-size: 9.5pt;
+  }
+
+  .why-card p {
     color: #333;
+    font-size: 8pt;
+    line-height: 1.5;
+  }
+
+  .report-card {
+    margin: 0;
   }
 
   .group-fields {
     display: flex;
-    gap: 10px;
+    gap: 6px;
   }
 
   .group-fields label {
     flex: 1;
+    color: #555;
+    font-size: 7.5pt;
   }
 
   .group-fields input {
+    padding: 4px 5px;
     border: 0;
     border-bottom: 1px solid #999;
-    background: #fff;
     border-radius: 0;
+    background: #fff;
+    font-size: 9pt;
+  }
+
+  .report-text-wrap {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #fff;
+  }
+
+  .report-label {
+    color: #555;
+    font-size: 7.5pt;
   }
 
   #reportText {
+    margin-top: 4px;
     color: #222;
-    font-size: 11pt;
+    font-size: 9.5pt;
+    line-height: 1.6;
   }
 
-  .group-fields label,
-  .report-label {
-    color: #555;
+  .prompt-card {
+    display: none !important;
   }
 }

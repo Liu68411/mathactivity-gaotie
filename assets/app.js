@@ -1,13 +1,15 @@
 import {
+  ACCEL_REFERENCE_SPEED,
+  ACCEL_REFERENCE_MINUTES,
+  UNIFORM_ACCELERATION,
   DEFAULTS,
-  PRESETS,
   computeEstimate,
   estimateRange,
   solveLimitedSpeed,
   formatClock,
   formatDuration,
   formatKm,
-} from './model.js?v=20261122-1';
+} from './model.js?v=20261122-2';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -31,6 +33,13 @@ function cacheElements() {
   els.metaRuntime = $('#metaRuntime');
   els.metaAvg = $('#metaAvg');
   els.rangeNote = $('#rangeNote');
+  els.calibrationNote = $('#calibrationNote');
+  els.chipAccelLabel = $('#chipAccelLabel');
+  els.chipAccelTime = $('#chipAccelTime');
+  els.chipDecelLabel = $('#chipDecelLabel');
+  els.chipDecelTime = $('#chipDecelTime');
+  els.chipBrakeLabel = $('#chipBrakeLabel');
+  els.chipBrakeTime = $('#chipBrakeTime');
 
   els.bigArrival = $('#bigArrival');
   els.bigDelay = $('#bigDelay');
@@ -90,12 +99,10 @@ function getInput(key) {
 function setOutput(key, value) {
   const output = $(`#${key}Out`);
   if (!output) return;
-  if (key === 'dwell' || key === 'preSlow' || key === 'accel' || key === 'decel' || key === 'brake') {
+  if (key === 'dwell' || key === 'preSlow') {
     output.textContent = `${value} 分钟`;
   } else if (key === 'v1' || key === 'v2') {
     output.textContent = `${value} 千米/时`;
-  } else if (key === 'distance') {
-    output.textContent = `${value} 千米`;
   }
 }
 
@@ -114,27 +121,6 @@ function syncControls() {
     input.value = state[key];
     updateRangeFill(input);
     setOutput(key, state[key]);
-  });
-  markPreset();
-}
-
-function markPreset() {
-  const isSimple = state.accel === 0 && state.decel === 0 && state.brake === 0;
-  const isStops =
-    state.accel === PRESETS.withStops.accel &&
-    state.decel === PRESETS.withStops.decel &&
-    state.brake === PRESETS.withStops.brake;
-
-  $$('.preset').forEach((button) => {
-    const preset = button.dataset.preset;
-    button.classList.toggle(
-      'is-active',
-      (preset === 'simple' && isSimple) || (preset === 'withStops' && isStops)
-    );
-    button.setAttribute(
-      'aria-pressed',
-      ((preset === 'simple' && isSimple) || (preset === 'withStops' && isStops)) ? 'true' : 'false'
-    );
   });
 }
 
@@ -165,15 +151,7 @@ function renderAll() {
 }
 
 function modelLabel() {
-  if (state.accel === 0 && state.decel === 0 && state.brake === 0) return '简洁分段模型';
-  if (
-    state.accel === PRESETS.withStops.accel &&
-    state.decel === PRESETS.withStops.decel &&
-    state.brake === PRESETS.withStops.brake
-  ) {
-    return '计入启停模型';
-  }
-  return '自定义模型';
+  return '匀变速模型';
 }
 
 function delayText(minutes) {
@@ -199,18 +177,37 @@ function renderResult(result, range) {
       el.textContent = '—';
     });
     els.rangeNote.textContent = '先让各段路程加起来不超过 536 千米。';
+    if (els.calibrationNote) {
+      els.calibrationNote.textContent = `加速度标定：0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟。`;
+    }
     return;
   }
 
   els.resultTime.textContent = formatClock(result.arrivalRounded);
   els.resultDelay.textContent = delayText(result.delayRounded);
-  els.resultSub.textContent = `按 ${formatClock(result.departure)} 发车、${formatClock(
-    result.slowStart
-  )} 开始减速计算。`;
+  els.resultSub.textContent = `按 ${formatClock(result.departure)} 发车，先匀加速 ${result.accelMinutes.toFixed(
+    1
+  )} 分钟，${formatClock(result.slowStart)} 开始减速。`;
   els.metaDeparture.textContent = formatClock(result.departure);
   els.metaSlow.textContent = formatClock(result.slowStart);
   els.metaRuntime.textContent = formatDuration(result.totalFromActual);
   els.metaAvg.textContent = `${Math.round(result.averageSpeed)} 千米/时`;
+
+  if (els.calibrationNote) {
+    els.calibrationNote.textContent = `匀变速：0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟，a≈${UNIFORM_ACCELERATION.toFixed(
+      1
+    )} 千米/时/分；本区间 0→${state.v1} 约 ${result.accelMinutes.toFixed(1)} 分，${state.v1}→${state.v2} 约 ${result.decelMinutes.toFixed(
+      1
+    )} 分，${state.v2}→0 约 ${result.brakeMinutes.toFixed(1)} 分。`;
+  }
+  if (els.chipAccelLabel) {
+    els.chipAccelLabel.textContent = `0→${state.v1}`;
+    els.chipAccelTime.textContent = `${result.accelMinutes.toFixed(1)} 分`;
+    els.chipDecelLabel.textContent = `${state.v1}→${state.v2}`;
+    els.chipDecelTime.textContent = `${result.decelMinutes.toFixed(1)} 分`;
+    els.chipBrakeLabel.textContent = `${state.v2}→0`;
+    els.chipBrakeTime.textContent = `${result.brakeMinutes.toFixed(1)} 分`;
+  }
 
   if (range) {
     if (range.min === range.max) {
@@ -237,10 +234,7 @@ function renderAnswer(result) {
 
   els.bigArrival.textContent = formatClock(result.arrivalRounded);
   els.bigDelay.textContent = String(Math.abs(result.delayRounded));
-  const transition = state.accel || state.decel || state.brake
-    ? '，并计入启动、降速和进站制动'
-    : '';
-  els.answerSub.textContent = `这是按停站 ${state.dwell} 分钟、出站 ${state.preSlow} 分钟后降到 ${state.v2} 千米/时${transition}得到的估计。`;
+  els.answerSub.textContent = `这是按停站 ${state.dwell} 分钟、匀加速到 ${state.v1} 千米/时、出站 ${state.preSlow} 分钟后匀减速到 ${state.v2} 千米/时得到的估计。`;
 }
 
 function svgText(x, y, text, className, extra = '') {
@@ -293,18 +287,10 @@ function renderSpeedChart(result) {
 
   const points = [];
   points.push([result.departure, 0]);
-  if (state.accel > 0) {
-    points.push([result.departure + state.accel, state.v1]);
-  } else {
-    points.push([result.departure, state.v1]);
-  }
+  points.push([result.departure + result.accelMinutes, state.v1]);
   points.push([result.slowStart, state.v1]);
-  if (state.decel > 0) {
-    points.push([result.slowEnd, state.v2]);
-  } else {
-    points.push([result.slowStart, state.v2]);
-  }
-  points.push([result.arrival - state.brake, state.v2]);
+  points.push([result.slowEnd, state.v2]);
+  points.push([result.arrival - result.brakeMinutes, state.v2]);
   points.push([result.arrival, 0]);
 
   const linePath = points
@@ -314,8 +300,8 @@ function renderSpeedChart(result) {
     result.departure
   ).toFixed(1)} ${y(0).toFixed(1)} Z`;
 
-  const plateauStart = state.decel > 0 ? result.slowEnd : result.slowStart;
-  const plateauEnd = Math.max(plateauStart, result.arrival - state.brake);
+  const plateauStart = result.slowEnd;
+  const plateauEnd = Math.max(plateauStart, result.arrival - result.brakeMinutes);
   const plateauBand =
     plateauEnd > plateauStart
       ? `<rect x="${x(plateauStart).toFixed(1)}" y="${y(state.v2).toFixed(1)}" width="${(
@@ -367,10 +353,12 @@ function renderSpeedChart(result) {
     );
   }
 
-  const departureDotY = state.accel > 0 ? y(0) : y(state.v1);
-  const departureDot = `<circle cx="${x(result.departure).toFixed(1)}" cy="${departureDotY.toFixed(
+  const departureDot = `<circle cx="${x(result.departure).toFixed(1)}" cy="${y(0).toFixed(
     1
   )}" r="3.5" class="chart-dot"/>`;
+  const accelDot = `<circle cx="${x(result.departure + result.accelMinutes).toFixed(1)}" cy="${y(
+    state.v1
+  ).toFixed(1)}" r="3" class="chart-dot"/>`;
   const slowDot = `<circle cx="${x(result.slowStart).toFixed(1)}" cy="${y(state.v1).toFixed(
     1
   )}" r="3" class="chart-dot"/>`;
@@ -379,10 +367,11 @@ function renderSpeedChart(result) {
   )}" r="3.5" class="chart-dot"/>`;
 
   const annotations = `
+    ${svgText(x(result.departure) + 7, y(0) - 9, '发车', 'chart-annotation', 'text-anchor="start"')}
     ${svgText(
-      x(result.departure) + 7,
-      (state.accel > 0 ? y(0) : y(state.v1)) - 9,
-      '发车',
+      x(result.departure + result.accelMinutes) + 5,
+      y(state.v1) - 9,
+      '加速完成',
       'chart-annotation',
       'text-anchor="start"'
     )}
@@ -408,6 +397,7 @@ function renderSpeedChart(result) {
     <path d="${linePath}" class="chart-line"/>
     ${markers}
     ${departureDot}
+    ${accelDot}
     ${slowDot}
     ${arrivalDot}
     ${annotations}
@@ -442,12 +432,25 @@ function renderBreakdown(result) {
 
   const rows = [];
   rows.push(['武汉发车', `${formatClock(state.actualWuhanArrival)} + ${state.dwell} 分 = ${formatClock(result.departure)}`]);
-  rows.push(['开始减速', `${formatClock(result.departure)} + ${state.preSlow} 分 = ${formatClock(result.slowStart)}`]);
-  rows.push(['减速前路程', formatKm(before)]);
-  rows.push(['限速段路程', formatKm(result.plateauDistance)]);
   rows.push([
-    '限速段用时',
-    `${result.plateauDistance.toFixed(1)} ÷ ${state.v2} × 60 ≈ ${result.plateauMinutes.toFixed(1)} 分`,
+    '匀加速',
+    `0→${state.v1}，${result.accelMinutes.toFixed(1)} 分 / ${result.accelDistance.toFixed(1)} 千米`,
+  ]);
+  rows.push([
+    `${state.v1} 千米/时 匀速`,
+    `${result.cruiseMinutes.toFixed(1)} 分 / ${result.cruiseDistance.toFixed(1)} 千米`,
+  ]);
+  rows.push([
+    '匀减速至限速',
+    `${state.v1}→${state.v2}，${result.decelMinutes.toFixed(1)} 分 / ${result.decelDistance.toFixed(1)} 千米`,
+  ]);
+  rows.push([
+    `${state.v2} 千米/时 限速`,
+    `${result.plateauMinutes.toFixed(1)} 分 / ${result.plateauDistance.toFixed(1)} 千米`,
+  ]);
+  rows.push([
+    '匀减速进站',
+    `${state.v2}→0，${result.brakeMinutes.toFixed(1)} 分 / ${result.brakeDistance.toFixed(1)} 千米`,
   ]);
   rows.push(['到站时刻', `${formatClock(result.arrival, true)} ≈ ${formatClock(result.arrivalRounded)}`]);
   rows.push(['预计晚点', `${formatClock(result.arrivalRounded)} − 15:26 = ${result.delayRounded} 分`]);
@@ -462,11 +465,9 @@ function renderBreakdown(result) {
   const rounding = Number.isInteger(result.arrival)
     ? `到站时刻恰好是整分钟，报成 ${formatClock(result.arrivalRounded)}。`
     : `最后把 ${formatClock(result.arrival, true)} 向上取整到分钟，报成 ${formatClock(result.arrivalRounded)}。`;
-  const transitionNote =
-    state.accel || state.decel || state.brake
-      ? '减速前路程已包含加速和降速段，限速段路程已扣除进站制动。'
-      : '简洁模型忽略加速、降速和制动过程。';
-  els.formulaNote.textContent = `${rounding}${transitionNote}`;
+  els.formulaNote.textContent = `${rounding}加速度 a = ${ACCEL_REFERENCE_SPEED} ÷ ${ACCEL_REFERENCE_MINUTES} ≈ ${UNIFORM_ACCELERATION.toFixed(
+    1
+  )} 千米/时/分，三段变速都按匀变速处理。`;
 }
 
 function speedLabel(segment) {
@@ -701,7 +702,12 @@ function renderPrintSummary(result) {
     <h3>本组假设与第一版估计</h3>
     <p><strong>估计到站：</strong>${formatClock(result.arrivalRounded)}，${delayText(result.delayRounded)}。</p>
     <p><strong>假设：</strong>武汉站停站 ${state.dwell} 分钟；出站 ${state.preSlow} 分钟后开始减速；减速前 ${state.v1} 千米/时；限速后 ${state.v2} 千米/时；${model}。</p>
-    <p><strong>里程校验：</strong>减速前 ${result.beforeSlowDistance.toFixed(1)} + 减速后 ${(
+    <p><strong>匀变速：</strong>0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟，a≈${UNIFORM_ACCELERATION.toFixed(
+      1
+    )} 千米/时/分；本区间加速 ${result.accelMinutes.toFixed(1)} 分、减速 ${result.decelMinutes.toFixed(
+      1
+    )} 分、制动 ${result.brakeMinutes.toFixed(1)} 分。</p>
+    <p><strong>里程校验：</strong>降至限速前 ${result.beforeSlowDistance.toFixed(1)} + 降至限速后 ${(
       result.distance - result.beforeSlowDistance
     ).toFixed(1)} = ${result.distance.toFixed(1)} 千米。</p>
     ${checkLine}
@@ -718,12 +724,9 @@ function renderReport(result) {
     return;
   }
 
-  const modelDesc =
-    state.accel === 0 && state.decel === 0 && state.brake === 0
-      ? '把全程分成“正常速度 + 限速速度”两段'
-      : '把全程分成“启动加速、正常速度、降至限速、限速运行、进站制动”几段';
+  const modelDesc = '把全程分成“匀加速启动、正常速度匀速、匀减速至限速、限速运行、匀减速进站”几段';
 
-  let text = `我们按“武汉站停站 ${state.dwell} 分钟、出站 ${state.preSlow} 分钟后开始减速、减速前 ${state.v1} 千米/时、限速后 ${state.v2} 千米/时”，${modelDesc}来估算。G80 约在 ${formatClock(
+  let text = `我们按“武汉站停站 ${state.dwell} 分钟、出站 ${state.preSlow} 分钟后开始减速、减速前 ${state.v1} 千米/时、限速后 ${state.v2} 千米/时，且 0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟的同一加速度”，${modelDesc}来估算。G80 约在 ${formatClock(
     result.arrivalRounded
   )} 到达郑州东，比计划 15:26 ${result.delayRounded >= 0 ? '晚' : '早'} ${Math.abs(
     result.delayRounded
@@ -753,24 +756,7 @@ function updateFromInput(input) {
   state[key] = Number(input.value);
   updateRangeFill(input);
   setOutput(key, state[key]);
-  markPreset();
   scheduleRender();
-}
-
-function setPreset(name) {
-  const preset = PRESETS[name];
-  if (!preset) return;
-  Object.assign(state, preset);
-  ['accel', 'decel', 'brake'].forEach((key) => {
-    const input = getInput(key);
-    if (input) {
-      input.value = state[key];
-      updateRangeFill(input);
-      setOutput(key, state[key]);
-    }
-  });
-  markPreset();
-  renderAll();
 }
 
 function resetAll() {
@@ -998,10 +984,6 @@ function bindEvents() {
     input.addEventListener('input', () => updateFromInput(input));
   });
 
-  $$('.preset').forEach((button) => {
-    button.addEventListener('click', () => setPreset(button.dataset.preset));
-  });
-
   $('#resetBtn')?.addEventListener('click', resetAll);
   els.revealBtn?.addEventListener('click', revealActual);
   els.resealBtn?.addEventListener('click', resealActual);
@@ -1018,7 +1000,6 @@ function bindEvents() {
       updateRangeFill(input);
       setOutput('v2', state.v2);
     }
-    markPreset();
     renderAll();
     showToast(`已把限速后速度改为 ${state.v2} 千米/时，估计结果已更新。`);
   });

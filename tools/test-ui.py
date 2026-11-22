@@ -54,39 +54,41 @@ def main():
         """,
     )
     cdp.call("Emulation.setDeviceMetricsOverride", width=1440, height=1100, deviceScaleFactor=1, mobile=False)
-    cdp.call("Page.navigate", url="http://127.0.0.1:4173/?ui-test=1")
+    cdp.call("Page.navigate", url="http://127.0.0.1:4173/?ui-test=uniform")
     time.sleep(2.5)
 
-    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:04", "default arrival 16:04")
-    check(cdp.ev("document.querySelector('#resultDelay').textContent").endswith("38 分钟"), "default delay 38")
-    check(cdp.ev("document.querySelectorAll('#segmentTableBody tr').length") == 3, "simple model rows")
+    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:17", "default uniform arrival 16:17")
+    check(cdp.ev("document.querySelector('#resultDelay').textContent").endswith("51 分钟"), "default delay 51")
+    check(cdp.ev("document.querySelectorAll('#segmentTableBody tr').length") == 6, "six uniform segments")
+    check("12.9" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "acceleration note 12.9")
+    check("23.3" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "acceleration note 23.3")
 
     cdp.ev(
         "(() => { const el=document.querySelector('#preSlow'); el.value=50; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
     )
     time.sleep(0.4)
-    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:11", "preSlow 50 -> 16:11")
+    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:24", "preSlow 50 -> 16:24")
 
     cdp.ev(
-        "(() => { const el=document.querySelector('#preSlow'); el.value=60; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
+        "(() => { const el=document.querySelector('#v1'); el.value=350; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
     )
-    time.sleep(0.2)
-    cdp.ev("document.querySelector('[data-preset=withStops]').click()")
     time.sleep(0.4)
-    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:09", "with stops -> 16:09")
-    check(cdp.ev("document.querySelector('#resultDelay').textContent").endswith("43 分钟"), "with stops delay 43")
-    check(cdp.ev("document.querySelectorAll('#segmentTableBody tr').length") == 6, "with stops rows")
-    check(cdp.ev("document.querySelector('[data-preset=withStops]').classList.contains('is-active')"), "preset active")
+    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:12", "v1 350 + preSlow 50 -> 16:12")
+    check("15.0" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "0->350 takes 15.0 min")
+
+    cdp.ev("document.querySelector('#resetBtn').click()")
+    time.sleep(0.3)
+    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:17", "reset arrival")
 
     cdp.ev("document.querySelector('#revealBtn').click()")
     time.sleep(0.5)
     check(cdp.ev("document.querySelector('#actualPanel').hidden === false"), "actual panel revealed")
-    check(cdp.ev("document.querySelector('#cmpError').textContent").strip() == "早 4 分钟", "error 4 min early")
-    check(cdp.ev("document.querySelector('#solveBtn').textContent").strip().endswith("171"), "solve button 171")
+    check(cdp.ev("document.querySelector('#cmpError').textContent").strip() == "晚 4 分钟", "error 4 min late")
+    check(cdp.ev("document.querySelector('#solveBtn').textContent").strip().endswith("189"), "solve button 189")
 
     cdp.ev("document.querySelector('#solveBtn').click()")
     time.sleep(0.4)
-    check(cdp.ev("document.querySelector('#v2').value") == "171", "v2 set to 171")
+    check(cdp.ev("document.querySelector('#v2').value") == "189", "v2 set to 189")
     check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:13", "fixed arrival 16:13")
     check(cdp.ev("document.querySelector('#cmpError').textContent").strip() == "刚好", "fixed error zero")
 
@@ -94,11 +96,6 @@ def main():
     time.sleep(0.3)
     check(cdp.ev("document.querySelector('#actualPanel').hidden === true"), "actual panel resealed")
     check(cdp.ev("document.querySelector('#legendActual').hidden === true"), "legend actual hidden")
-
-    cdp.ev("document.querySelector('#resetBtn').click()")
-    time.sleep(0.3)
-    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:04", "reset arrival")
-    check(cdp.ev("document.querySelector('#v2').value") == "180", "reset v2")
 
     errors = cdp.ev("window.__uiErrors || []")
     check(not errors, f"no runtime errors: {errors}")

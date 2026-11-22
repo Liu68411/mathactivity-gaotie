@@ -1,61 +1,53 @@
 import assert from 'node:assert/strict';
 import {
+  ACCEL_REFERENCE_SPEED,
+  ACCEL_REFERENCE_MINUTES,
+  UNIFORM_ACCELERATION,
   DEFAULTS,
-  PRESETS,
   computeEstimate,
   estimateRange,
   solveLimitedSpeed,
   formatClock,
 } from '../assets/model.js';
 
+assert.equal(ACCEL_REFERENCE_SPEED, 350);
+assert.equal(ACCEL_REFERENCE_MINUTES, 15);
+assert.ok(Math.abs(UNIFORM_ACCELERATION - 350 / 15) < 1e-12);
+
 const simple = computeEstimate(DEFAULTS);
 assert.equal(simple.valid, true);
-assert.equal(formatClock(simple.arrival, true), '16:03:40');
-assert.equal(formatClock(simple.arrivalRounded), '16:04');
-assert.equal(simple.delayRounded, 38);
+assert.equal(formatClock(simple.arrival, true), '16:16:31');
+assert.equal(formatClock(simple.arrivalRounded), '16:17');
+assert.equal(simple.delayRounded, 51);
 assert.equal(simple.departure, 13 * 60 + 45);
 assert.equal(simple.slowStart, 14 * 60 + 45);
-assert.ok(Math.abs(simple.runningMinutes - (60 + 236 / 3)) < 1e-9);
+assert.ok(Math.abs(simple.accelMinutes - 300 / (350 / 15)) < 1e-9);
+assert.ok(Math.abs(simple.decelMinutes - 120 / (350 / 15)) < 1e-9);
+assert.ok(Math.abs(simple.brakeMinutes - 180 / (350 / 15)) < 1e-9);
+assert.equal(simple.segments.length, 6);
 
 const segKm = simple.segments.reduce((sum, segment) => sum + segment.km, 0);
 assert.ok(Math.abs(segKm - 536) < 1e-9, `segment km sum ${segKm}`);
 const segMin = simple.segments.reduce((sum, segment) => sum + segment.minutes, 0);
 assert.ok(Math.abs(segMin - simple.totalFromActual) < 1e-9);
 
-const stops = computeEstimate({ ...DEFAULTS, ...PRESETS.withStops });
-assert.equal(stops.valid, true);
-assert.equal(formatClock(stops.arrival, true), '16:08:20');
-assert.equal(formatClock(stops.arrivalRounded), '16:09');
-assert.equal(stops.delayRounded, 43);
-const stopsKm = stops.segments.reduce((sum, segment) => sum + segment.km, 0);
-assert.ok(Math.abs(stopsKm - 536) < 1e-9, `stops km sum ${stopsKm}`);
+const fast = computeEstimate({ ...DEFAULTS, v1: 350 });
+assert.equal(fast.valid, true);
+assert.equal(fast.accelMinutes, 15);
+assert.equal(formatClock(fast.arrivalRounded), '16:02');
 
-const noDwell = computeEstimate({ ...DEFAULTS, dwell: 0 });
-assert.equal(formatClock(noDwell.arrivalRounded), '16:01');
-assert.equal(noDwell.delayRounded, 35);
-
-const fixed = computeEstimate({ ...DEFAULTS, v2: 161 });
+const fixed = computeEstimate({ ...DEFAULTS, v2: 189 });
 assert.equal(formatClock(fixed.arrivalRounded), '16:13');
-assert.equal(fixed.arrivalRounded, 16 * 60 + 13);
+assert.equal(fixed.delayRounded, 47);
 
-const solvedSimple = solveLimitedSpeed(16 * 60 + 13, DEFAULTS);
-assert.ok(Math.abs(solvedSimple - 160.9090909) < 0.001, `solved simple ${solvedSimple}`);
-const solvedStops = solveLimitedSpeed(16 * 60 + 13, { ...DEFAULTS, ...PRESETS.withStops });
-assert.ok(Math.abs(solvedStops - 170.117647) < 0.001, `solved stops ${solvedStops}`);
+const solved = solveLimitedSpeed(16 * 60 + 13, DEFAULTS);
+assert.ok(Math.abs(solved - 188.4410646) < 0.001, `solved ${solved}`);
 
 const range = estimateRange(DEFAULTS);
-assert.equal(formatClock(range.min), '15:57');
-assert.equal(formatClock(range.max), '16:11');
+assert.equal(formatClock(range.min), '16:10');
+assert.equal(formatClock(range.max), '16:24');
 
-const invalid = computeEstimate({
-  ...DEFAULTS,
-  distance: 400,
-  preSlow: 90,
-  v1: 320,
-  accel: 10,
-  decel: 5,
-  brake: 5,
-});
+const invalid = computeEstimate({ ...DEFAULTS, distance: 200 });
 assert.equal(invalid.valid, false);
 assert.ok(invalid.errors.length > 0);
 

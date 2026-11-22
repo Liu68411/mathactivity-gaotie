@@ -11,8 +11,8 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="assets/hero.jpg">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/style.css?v=20261122-1">
-  <script type="module" src="assets/app.js?v=20261122-1"></script>
+  <link rel="stylesheet" href="assets/style.css?v=20261122-2">
+  <script type="module" src="assets/app.js?v=20261122-2"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -244,8 +244,8 @@
           <div class="section-no">02</div>
           <div>
             <p class="section-kicker">建模</p>
-            <h2 id="model-title">把连续的速度，切成几段</h2>
-            <p class="section-lede">先做“简洁分段”，再把加速、减速、制动加进去，看看假设会怎样改变答案。</p>
+            <h2 id="model-title">把加速和减速，都算成匀变速</h2>
+            <p class="section-lede">加速、减速、进站制动共用同一个加速度：0→350 千米/时用 15 分钟。再拖动其他假设，看看到站时间怎么变。</p>
           </div>
         </div>
 
@@ -254,20 +254,26 @@
             <div class="panel-head">
               <div>
                 <h3 id="assumptions-title">假设面板</h3>
-                <p>拖动滑块，右侧结果立即更新。</p>
+                <p>拖动滑块，结果立即更新。</p>
               </div>
               <button class="text-button" type="button" id="resetBtn">恢复默认</button>
             </div>
 
-            <div class="preset-row" role="group" aria-label="模型预设">
-              <button class="preset is-active" type="button" data-preset="simple">
-                <strong>简洁分段</strong>
-                <span>忽略启停，两段匀速</span>
-              </button>
-              <button class="preset" type="button" data-preset="withStops">
-                <strong>计入启停</strong>
-                <span>加速 5 分 · 减速 3 分 · 制动 3 分</span>
-              </button>
+            <div class="calibration-card">
+              <div class="calibration-top">
+                <div>
+                  <span class="calibration-kicker">匀变速标定</span>
+                  <strong>0 → 350 <small>千米/时</small></strong>
+                </div>
+                <div class="calibration-time">15 <small>分钟</small></div>
+              </div>
+              <div class="calibration-formula">a = 350 ÷ 15 ≈ 23.3 千米/时/分</div>
+              <div class="calibration-chips" aria-label="本区间各变速段用时">
+                <span><span id="chipAccelLabel">0→300</span> <strong id="chipAccelTime">12.9 分</strong></span>
+                <span><span id="chipDecelLabel">300→180</span> <strong id="chipDecelTime">5.1 分</strong></span>
+                <span><span id="chipBrakeLabel">180→0</span> <strong id="chipBrakeTime">7.7 分</strong></span>
+              </div>
+              <p>启动加速、降至限速、进站制动，全部使用同一个加速度。</p>
             </div>
 
             <div class="control-grid">
@@ -291,11 +297,11 @@
 
               <div class="control">
                 <div class="control-head">
-                  <label for="v1">减速前速度</label>
+                  <label for="v1">正常速度（任务数据 300）</label>
                   <output id="v1Out" for="v1">300 千米/时</output>
                 </div>
-                <input type="range" id="v1" data-bind="v1" min="260" max="320" step="5" value="300">
-                <div class="control-scale"><span>260</span><span>320 千米/时</span></div>
+                <input type="range" id="v1" data-bind="v1" min="260" max="350" step="5" value="300">
+                <div class="control-scale"><span>260</span><span>350 千米/时</span></div>
               </div>
 
               <div class="control">
@@ -308,56 +314,9 @@
               </div>
             </div>
 
-            <details class="advanced">
-              <summary>
-                <span>更多假设：启动、降速、制动与里程</span>
-                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg>
-              </summary>
-              <div class="advanced-body">
-                <div class="control-grid">
-                  <div class="control">
-                    <div class="control-head">
-                      <label for="accel">启动加速用时</label>
-                      <output id="accelOut" for="accel">0 分钟</output>
-                    </div>
-                    <input type="range" id="accel" data-bind="accel" min="0" max="10" step="1" value="0">
-                    <div class="control-scale"><span>0</span><span>10 分钟</span></div>
-                  </div>
-
-                  <div class="control">
-                    <div class="control-head">
-                      <label for="decel">降至限速用时</label>
-                      <output id="decelOut" for="decel">0 分钟</output>
-                    </div>
-                    <input type="range" id="decel" data-bind="decel" min="0" max="5" step="1" value="0">
-                    <div class="control-scale"><span>0</span><span>5 分钟</span></div>
-                  </div>
-
-                  <div class="control">
-                    <div class="control-head">
-                      <label for="brake">进站制动用时</label>
-                      <output id="brakeOut" for="brake">0 分钟</output>
-                    </div>
-                    <input type="range" id="brake" data-bind="brake" min="0" max="5" step="1" value="0">
-                    <div class="control-scale"><span>0</span><span>5 分钟</span></div>
-                  </div>
-
-                  <div class="control">
-                    <div class="control-head">
-                      <label for="distance">区间里程</label>
-                      <output id="distanceOut" for="distance">536 千米</output>
-                    </div>
-                    <input type="range" id="distance" data-bind="distance" min="500" max="560" step="1" value="536">
-                    <div class="control-scale"><span>500</span><span>560 千米</span></div>
-                  </div>
-                </div>
-                <p class="advanced-note">加速、减速段按匀变速处理，用平均速度乘时间求路程。</p>
-              </div>
-            </details>
-
             <div class="assumption-note">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-              <p>默认停站 3 分钟，是沿用武汉站计划停站时间；实际发车时刻任务单没有给出。</p>
+              <p>默认停站 3 分钟，沿用武汉站计划停站时间；实际发车时刻任务单没有给出。区间里程固定为 536 千米。</p>
             </div>
           </div>
 
@@ -367,18 +326,19 @@
                 <span>第一版估计</span>
                 <span class="live-dot"><i></i>实时</span>
               </div>
-              <div class="result-time" id="resultTime" aria-live="polite">16:04</div>
-              <div class="result-delay" id="resultDelay">比计划晚 38 分钟</div>
-              <p class="result-sub" id="resultSub">按 13:45 发车、14:45 开始减速计算。</p>
+              <div class="result-time" id="resultTime" aria-live="polite">16:17</div>
+              <div class="result-delay" id="resultDelay">比计划晚 51 分钟</div>
+              <p class="result-sub" id="resultSub">按 13:45 发车，先匀加速 12.9 分钟，14:45 开始减速。</p>
 
               <dl class="result-meta">
                 <div><dt>发车</dt><dd id="metaDeparture">13:45</dd></div>
                 <div><dt>开始减速</dt><dd id="metaSlow">14:45</dd></div>
-                <div><dt>区间用时</dt><dd id="metaRuntime">2 小时 22 分</dd></div>
-                <div><dt>运行均速</dt><dd id="metaAvg">232 千米/时</dd></div>
+                <div><dt>区间用时</dt><dd id="metaRuntime">2 小时 35 分</dd></div>
+                <div><dt>运行均速</dt><dd id="metaAvg">212 千米/时</dd></div>
               </dl>
 
-              <p class="range-note" id="rangeNote">若“1 小时”在 50–70 分钟之间摆动，估计落在 15:57–16:11。</p>
+              <p class="range-note" id="rangeNote">若“1 小时”在 50–70 分钟之间摆动，估计落在 16:10–16:24。</p>
+              <p class="calibration-note" id="calibrationNote">匀变速：0→350 用 15 分钟，本区间加速 12.9 分、减速 5.1 分、制动 7.7 分。</p>
             </div>
             <p class="result-hint">先把这个时间记下来，再去拆“检验资料”。</p>
           </aside>
@@ -403,11 +363,11 @@
           <div class="answer-copy">
             <span class="answer-kicker">给家人报个到站时间</span>
             <p class="answer-line">
-              “G80 大概 <strong id="bigArrival">16:04</strong> 到郑州东，
-              比计划晚 <strong id="bigDelay">38</strong> 分钟左右。”
+              “G80 大概 <strong id="bigArrival">16:17</strong> 到郑州东，
+              比计划晚 <strong id="bigDelay">51</strong> 分钟左右。”
             </p>
             <p class="answer-sub" id="answerSub">
-              这是按停站 3 分钟、出站 60 分钟后降到 180 千米/时得到的估计。
+              这是按停站 3 分钟、匀加速到 300 千米/时、出站 60 分钟后匀减速到 180 千米/时得到的估计。
             </p>
           </div>
           <div class="answer-stamp" aria-hidden="true">
@@ -432,11 +392,11 @@
           <div class="chart-wrap">
             <svg id="speedChart" viewBox="0 0 860 390" role="img" aria-labelledby="speedChartTitle speedChartDesc">
               <title id="speedChartTitle">G80 武汉至郑州东速度—时间估算图</title>
-              <desc id="speedChartDesc">横轴为时刻，纵轴为速度。折线显示停站、正常速度、限速和进站制动各段。</desc>
+              <desc id="speedChartDesc">横轴为时刻，纵轴为速度。折线显示停站、匀加速、正常速度、匀减速、限速和进站制动各段。</desc>
             </svg>
           </div>
           <p class="chart-caption" id="chartCaption">
-            简洁分段模型：先以 300 千米/时走 60 分钟，再以 180 千米/时走完剩余路程。
+            匀变速模型：启动、降至限速和进站制动都按同一加速度计算，折线下的面积就是路程。
           </p>
         </div>
 
@@ -444,15 +404,15 @@
           <article class="distance-card">
             <div class="card-heading">
               <h3>536 千米怎么分</h3>
-              <span class="tag tag--muted" id="distanceTag">简洁模型</span>
+              <span class="tag tag--muted" id="distanceTag">匀变速模型</span>
             </div>
             <div class="distance-bar" id="distanceBar" aria-hidden="true">
               <span class="distance-before" id="distanceBeforeBar"></span>
               <span class="distance-after" id="distanceAfterBar"></span>
             </div>
             <div class="distance-legend">
-              <div><i class="swatch swatch--before"></i><span>减速前</span><strong id="distanceBeforeLabel">300.0 千米</strong></div>
-              <div><i class="swatch swatch--after"></i><span>减速后</span><strong id="distanceAfterLabel">236.0 千米</strong></div>
+              <div><i class="swatch swatch--before"></i><span>降至限速前</span><strong id="distanceBeforeLabel">288.4 千米</strong></div>
+              <div><i class="swatch swatch--after"></i><span>降至限速后</span><strong id="distanceAfterLabel">247.6 千米</strong></div>
             </div>
             <p class="card-note">两段路程相加必须回到 536 千米，这是模型的“里程校验”。</p>
           </article>
@@ -463,7 +423,7 @@
               <span class="tag tag--muted">单位：分钟 / 千米</span>
             </div>
             <div class="formula-list" id="formulaList"></div>
-            <p class="formula-note" id="formulaNote">最后把 16:03:40 向上取整到分钟，报成 16:04。</p>
+            <p class="formula-note" id="formulaNote">加速度 a=350÷15≈23.3 千米/时/分，三段变速都按匀变速处理。</p>
           </article>
         </div>
 
@@ -535,23 +495,23 @@
           <div class="error-grid">
             <article class="compare-card">
               <span>你的估计</span>
-              <strong id="cmpEstimate">16:04</strong>
-              <small id="cmpEstimateDelay">比计划晚 38 分钟</small>
+              <strong id="cmpEstimate">16:17</strong>
+              <small id="cmpEstimateDelay">比计划晚 51 分钟</small>
             </article>
             <article class="compare-card compare-card--actual">
               <span>实际到站</span>
               <strong id="cmpActual">16:13</strong>
               <small>比计划晚 47 分钟</small>
             </article>
-            <article class="compare-card compare-card--error" id="cmpErrorCard">
+            <article class="compare-card compare-card--error is-late" id="cmpErrorCard">
               <span>估计偏差</span>
-              <strong id="cmpError">早 9 分钟</strong>
+              <strong id="cmpError">晚 4 分钟</strong>
               <small>估计时刻 − 实际时刻</small>
             </article>
           </div>
 
           <div class="error-banner" id="errorBanner">
-            你的估计比实际早 9 分钟。对赶时间的人来说，这 9 分钟足够让接站的人多等一会儿。
+            你的估计比实际晚 4 分钟。这说明模型把某段速度估得偏低，或把限速持续的时间估长了。
           </div>
 
           <div class="timeline-card">
@@ -597,11 +557,11 @@
               <span class="revision-kicker">模型修正</span>
               <h3>把模型往实际方向修一修</h3>
               <p id="requiredSpeedText">
-                如果其余假设不变，限速后平均速度约需 161 千米/时，才能 16:13 到站。
+                如果其余假设不变，限速后平均速度约需 188 千米/时，才能 16:13 到站。
               </p>
               <p class="revision-note">这是反推出来的“等效速度”，不是当天真实的速度记录。</p>
             </div>
-            <button class="button button--dark" type="button" id="solveBtn">把限速后速度改为 161</button>
+            <button class="button button--dark" type="button" id="solveBtn">把限速后速度改为 189</button>
           </div>
         </div>
       </div>
@@ -648,7 +608,7 @@
             <h3>汇报时可以用这三句话</h3>
             <ol class="sentence-list">
               <li>“我们把全程分成了 <strong>停站、正常速度、限速运行</strong> 几段。”</li>
-              <li>“在这些假设下，估计 <strong id="promptArrival">16:04</strong> 到，比计划晚 <strong id="promptDelay">38</strong> 分钟。”</li>
+              <li>“在这些假设下，估计 <strong id="promptArrival">16:17</strong> 到，比计划晚 <strong id="promptDelay">51</strong> 分钟。”</li>
               <li id="promptThird">“先保留估计，拿到实际记录后，再比较误差。”</li>
             </ol>
             <div class="prompt-divider"></div>

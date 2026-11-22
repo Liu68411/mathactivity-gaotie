@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>雾雪限速后，几点能到站？｜G80 · 专题三</title>
+  <meta name="description" content="用一个可交互的分段模型，估算 2012 年 12 月 26 日 G80 次列车在雾雪限速后到达郑州东的时刻，并与实际记录比较误差。">
+  <meta name="theme-color" content="#0b1024">
+  <meta property="og:title" content="雾雪限速后，几点能到站？">
+  <meta property="og:description" content="G80 · 武汉到郑州东 · 536 千米 · 300→180 千米/时。动手估一估，再用实际记录检验。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/hero.jpg">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <script type="module" src="assets/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <header class="site-header" id="top">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top" aria-label="回到页面顶部">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img"><path d="M12 2v20M4.2 6.5l15.6 11M19.8 6.5l-15.6 11M12 5.5l3-3M12 5.5l-3-3M12 18.5l3 3M12 18.5l-3 3M5.9 8.3l-4.1.5M5.9 8.3l.4-4.1M18.1 15.7l4.1-.5M18.1 15.7l-.4 4.1M18.1 8.3l4.1.5M18.1 8.3l-.4-4.1M5.9 15.7l-4.1-.5M5.9 15.7l.4 4.1"/></svg>
+        </span>
+        <span class="brand-copy">
+          <strong>G80 · 雾雪限速</strong>
+          <span>高铁综合与实践</span>
+        </span>
+      </a>
+
+      <nav class="site-nav" aria-label="页面导航">
+        <a href="#situation" data-nav="situation">情境</a>
+        <a href="#model" data-nav="model">建模</a>
+        <a href="#estimate" data-nav="estimate">估算</a>
+        <a href="#check" data-nav="check">检验</a>
+        <a href="#report" data-nav="report">汇报</a>
+      </nav>
+
+      <button class="icon-button print-trigger" type="button" aria-label="打印学习单">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+        <span>打印</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <canvas class="hero-snow" id="snowCanvas" aria-hidden="true"></canvas>
+      <div class="hero-glow hero-glow--one" aria-hidden="true"></div>
+      <div class="hero-glow hero-glow--two" aria-hidden="true"></div>
+
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="eyebrow-pill">专题 03</span>
+            <span>高铁综合与实践</span>
+          </div>
+
+          <h1 id="hero-title">
+            雾雪限速后
+            <span class="accent">几点能到站？</span>
+          </h1>
+
+          <p class="hero-lede">
+            2012 年 12 月 26 日，京广高铁全线贯通。G80 次从武汉驶向郑州东，
+            出站约 1 小时后因雾雪减速。你要给家人报一个到站时间——
+            先估，再用实际记录检验。
+          </p>
+
+          <div class="hero-actions">
+            <a class="button button--primary" href="#model">
+              开始估算
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg>
+            </a>
+            <a class="button button--ghost" href="#situation">先看已知信息</a>
+          </div>
+
+          <dl class="hero-facts">
+            <div>
+              <dt>区间里程</dt>
+              <dd>536 <small>千米</small></dd>
+            </div>
+            <div>
+              <dt>速度变化</dt>
+              <dd>300 <span>→</span> 180 <small>千米/时</small></dd>
+            </div>
+            <div>
+              <dt>计划到站</dt>
+              <dd>15:26</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="hero-visual">
+          <figure class="art-card">
+            <img src="assets/hero.jpg" alt="雪天高铁车厢里，两名学生望着窗外另一列飞驰的列车" width="640" height="960">
+            <div class="art-shade" aria-hidden="true"></div>
+            <figcaption class="art-caption">
+              <span class="art-kicker">2012.12.26 · 京广高铁首发日</span>
+              <strong>窗外是雪，车上是等待到站的人。</strong>
+            </figcaption>
+            <div class="art-chip art-chip--top">
+              <span>车厢一度显示</span>
+              <strong>180<small>km/h</small></strong>
+            </div>
+            <div class="art-chip art-chip--bottom">
+              <span>武汉 → 郑州东</span>
+              <strong>536<small>km</small></strong>
+            </div>
+          </figure>
+        </div>
+      </div>
+
+      <div class="wrap">
+        <div class="route-band" aria-label="行程区间">
+          <div class="route-station">
+            <span class="route-dot"></span>
+            <div><strong>武汉</strong><span>13:42 实际到达</span></div>
+          </div>
+          <div class="route-line">
+            <span class="route-line-label">约 536 千米 · 出站约 1 小时后减速</span>
+            <span class="route-line-track" aria-hidden="true"><i></i></span>
+          </div>
+          <div class="route-station route-station--right">
+            <div><strong>郑州东</strong><span>15:26 计划到达</span></div>
+            <span class="route-dot route-dot--amber"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="situation" aria-labelledby="situation-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-no">01</div>
+          <div>
+            <p class="section-kicker">情境</p>
+            <h2 id="situation-title">先把已知信息摆上桌</h2>
+            <p class="section-lede">别急着算。先分清哪些是计划、哪些是实际、哪些只是车上看到的一瞬间。</p>
+          </div>
+        </div>
+
+        <div class="situation-grid">
+          <article class="story-card">
+            <div class="quote-mark" aria-hidden="true">“</div>
+            <p class="story-lead">列车从武汉站开出约 1 小时后，乘客察觉它变慢了。</p>
+            <p>
+              车厢显示屏一度显示 <strong>180 千米/时</strong>。列车员解释，湖北、河南境内有雾雪，
+              为确保安全，列车限速运行。原计划 15:26 到郑州东，现在还能准点到吗？
+            </p>
+            <p>
+              你要做的，不是猜一个数字，而是把“停站多久、在哪里减速、每段用什么速度”
+              说清楚，让家人听懂这个时间是怎么来的。
+            </p>
+            <div class="story-callout">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a7 7 0 0 0-4 12.7V19h8v-3.3A7 7 0 0 0 12 3Z"/><path d="M9 22h6"/></svg>
+              <span>可用的数据并不完整：实际发车、限速起止里程和持续时间，任务单都没有给出。</span>
+            </div>
+          </article>
+
+          <aside class="data-card" aria-labelledby="data-title">
+            <div class="card-heading">
+              <h3 id="data-title">已知信息</h3>
+              <span class="tag tag--muted">任务单</span>
+            </div>
+            <dl class="info-grid">
+              <div>
+                <dt>武汉计划到站 / 发车</dt>
+                <dd>13:38 <span>/</span> 13:41</dd>
+              </div>
+              <div class="info-highlight">
+                <dt>武汉实际到站</dt>
+                <dd>13:42</dd>
+              </div>
+              <div>
+                <dt>郑州东计划到站</dt>
+                <dd>15:26</dd>
+              </div>
+              <div>
+                <dt>武汉至郑州东</dt>
+                <dd>约 536 <small>千米</small></dd>
+              </div>
+              <div>
+                <dt>当时线路运营速度</dt>
+                <dd>300 <small>千米/时</small></dd>
+              </div>
+              <div class="info-highlight info-highlight--amber">
+                <dt>车厢一度显示</dt>
+                <dd>180 <small>千米/时</small></dd>
+              </div>
+            </dl>
+            <p class="data-footnote">“一度显示”不等于“全程都是 180”。这是后面误差分析的关键。</p>
+          </aside>
+        </div>
+
+        <div class="problem-grid" aria-label="任务拆解">
+          <article class="problem-card">
+            <span class="problem-no">1</span>
+            <div>
+              <h3>估一个到站时间</h3>
+              <p>从 13:42 到达武汉算起，停站多久？减速前后各走多远、各用多久？</p>
+            </div>
+          </article>
+          <article class="problem-card">
+            <span class="problem-no">2</span>
+            <div>
+              <h3>算一算晚点</h3>
+              <p>把估计到站时刻与计划 15:26 比较，得到预计晚点分钟数。</p>
+            </div>
+          </article>
+          <article class="problem-card">
+            <span class="problem-no">3</span>
+            <div>
+              <h3>拿记录检验</h3>
+              <p>实际到站后，看估计偏早还是偏晚，并找出最值得怀疑的假设。</p>
+            </div>
+          </article>
+        </div>
+
+        <details class="data-note">
+          <summary>
+            <span class="data-note-icon" aria-hidden="true">!</span>
+            数据里有一处小矛盾，点开看看
+          </summary>
+          <div class="data-note-body">
+            <p>
+              若全程都按 300 千米/时行驶，536 千米需要
+              <strong>536 ÷ 300 × 60 ≈ 107.2 分钟</strong>；但计划从 13:41 到 15:26 只有
+              <strong>105 分钟</strong>。三个数据不能同时精确成立，说明里程、速度或时刻经过了取整。
+            </p>
+            <p>
+              所以本题把 300 千米/时当作“理想运营速度”，不强行让计划时间严丝合缝。
+              估算本来就是在不完整的信息上做合理简化。
+            </p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <section class="section section--tint" id="model" aria-labelledby="model-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-no">02</div>
+          <div>
+            <p class="section-kicker">建模</p>
+            <h2 id="model-title">把连续的速度，切成几段</h2>
+            <p class="section-lede">先做“简洁分段”，再把加速、减速、制动加进去，看看假设会怎样改变答案。</p>
+          </div>
+        </div>
+
+        <div class="model-grid">
+          <div class="panel assumptions" aria-labelledby="assumptions-title">
+            <div class="panel-head">
+              <div>
+                <h3 id="assumptions-title">假设面板</h3>
+                <p>拖动滑块，右侧结果立即更新。</p>
+              </div>
+              <button class="text-button" type="button" id="resetBtn">恢复默认</button>
+            </div>
+
+            <div class="preset-row" role="group" aria-label="模型预设">
+              <button class="preset is-active" type="button" data-preset="simple">
+                <strong>简洁分段</strong>
+                <span>忽略启停，两段匀速</span>
+              </button>
+              <button class="preset" type="button" data-preset="withStops">
+                <strong>计入启停</strong>
+                <span>加速 5 分 · 减速 3 分 · 制动 3 分</span>
+              </button>
+            </div>
+
+            <div class="control-grid">
+              <div class="control">
+                <div class="control-head">
+                  <label for="dwell">武汉站停站</label>
+                  <output id="dwellOut" for="dwell">3 分钟</output>
+                </div>
+                <input type="range" id="dwell" data-bind="dwell" min="0" max="10" step="1" value="3">
+                <div class="control-scale"><span>0</span><span>10 分钟</span></div>
+              </div>
+
+              <div class="control">
+                <div class="control-head">
+                  <label for="preSlow">出站后多久开始减速</label>
+                  <output id="preSlowOut" for="preSlow">60 分钟</output>
+                </div>
+                <input type="range" id="preSlow" data-bind="preSlow" min="30" max="90" step="1" value="60">
+                <div class="control-scale"><span>30</span><span>90 分钟</span></div>
+              </div>
+
+              <div class="control">
+                <div class="control-head">
+                  <label for="v1">减速前速度</label>
+                  <output id="v1Out" for="v1">300 千米/时</output>
+                </div>
+                <input type="range" id="v1" data-bind="v1" min="260" max="320" step="5" value="300">
+                <div class="control-scale"><span>260</span><span>320 千米/时</span></div>
+              </div>
+
+              <div class="control">
+                <div class="control-head">
+                  <label for="v2">限速后速度</label>
+                  <output id="v2Out" for="v2">180 千米/时</output>
+                </div>
+                <input type="range" id="v2" data-bind="v2" min="100" max="240" step="1" value="180">
+                <div class="control-scale"><span>100</span><span>240 千米/时</span></div>
+              </div>
+            </div>
+
+            <details class="advanced">
+              <summary>
+                <span>更多假设：启动、降速、制动与里程</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg>
+              </summary>
+              <div class="advanced-body">
+                <div class="control-grid">
+                  <div class="control">
+                    <div class="control-head">
+                      <label for="accel">启动加速用时</label>
+                      <output id="accelOut" for="accel">0 分钟</output>
+                    </div>
+                    <input type="range" id="accel" data-bind="accel" min="0" max="10" step="1" value="0">
+                    <div class="control-scale"><span>0</span><span>10 分钟</span></div>
+                  </div>
+
+                  <div class="control">
+                    <div class="control-head">
+                      <label for="decel">降至限速用时</label>
+                      <output id="decelOut" for="decel">0 分钟</output>
+                    </div>
+                    <input type="range" id="decel" data-bind="decel" min="0" max="5" step="1" value="0">
+                    <div class="control-scale"><span>0</span><span>5 分钟</span></div>
+                  </div>
+
+                  <div class="control">
+                    <div class="control-head">
+                      <label for="brake">进站制动用时</label>
+                      <output id="brakeOut" for="brake">0 分钟</output>
+                    </div>
+                    <input type="range" id="brake" data-bind="brake" min="0" max="5" step="1" value="0">
+                    <div class="control-scale"><span>0</span><span>5 分钟</span></div>
+                  </div>
+
+                  <div class="control">
+                    <div class="control-head">
+                      <label for="distance">区间里程</label>
+                      <output id="distanceOut" for="distance">536 千米</output>
+                    </div>
+                    <input type="range" id="distance" data-bind="distance" min="500" max="560" step="1" value="536">
+                    <div class="control-scale"><span>500</span><span>560 千米</span></div>
+                  </div>
+                </div>
+                <p class="advanced-note">加速、减速段按匀变速处理，用平均速度乘时间求路程。</p>
+              </div>
+            </details>
+
+            <div class="assumption-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+              <p>默认停站 3 分钟，是沿用武汉站计划停站时间；实际发车时刻任务单没有给出。</p>
+            </div>
+          </div>
+
+          <aside class="result-sticky" aria-label="实时估算结果">
+            <div class="result-card">
+              <div class="result-topline">
+                <span>第一版估计</span>
+                <span class="live-dot"><i></i>实时</span>
+              </div>
+              <div class="result-time" id="resultTime" aria-live="polite">16:04</div>
+              <div class="result-delay" id="resultDelay">比计划晚 38 分钟</div>
+              <p class="result-sub" id="resultSub">按 13:45 发车、14:45 开始减速计算。</p>
+
+              <dl class="result-meta">
+                <div><dt>发车</dt><dd id="metaDeparture">13:45</dd></div>
+                <div><dt>开始减速</dt><dd id="metaSlow">14:45</dd></div>
+                <div><dt>区间用时</dt><dd id="metaRuntime">2 小时 22 分</dd></div>
+                <div><dt>运行均速</dt><dd id="metaAvg">232 千米/时</dd></div>
+              </dl>
+
+              <p class="range-note" id="rangeNote">若“1 小时”在 50–70 分钟之间摆动，估计落在 15:57–16:11。</p>
+            </div>
+            <p class="result-hint">先把这个时间记下来，再去拆“检验资料”。</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="estimate" aria-labelledby="estimate-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-no">03</div>
+          <div>
+            <p class="section-kicker">估算</p>
+            <h2 id="estimate-title">先算出一个能报给家人的时间</h2>
+            <p class="section-lede">用一张速度—时间图、一张分段表，把“怎么估的”讲清楚。</p>
+          </div>
+        </div>
+
+        <article class="answer-card">
+          <div class="answer-copy">
+            <span class="answer-kicker">给家人报个到站时间</span>
+            <p class="answer-line">
+              “G80 大概 <strong id="bigArrival">16:04</strong> 到郑州东，
+              比计划晚 <strong id="bigDelay">38</strong> 分钟左右。”
+            </p>
+            <p class="answer-sub" id="answerSub">
+              这是按停站 3 分钟、出站 60 分钟后降到 180 千米/时得到的估计。
+            </p>
+          </div>
+          <div class="answer-stamp" aria-hidden="true">
+            <span>ESTIMATE</span>
+            <strong>约</strong>
+          </div>
+        </article>
+
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <h3>速度—时间草图</h3>
+              <p>折线下方每一个矩形的面积，就是那一段走过的路程。</p>
+            </div>
+            <div class="legend" aria-label="图例">
+              <span><i class="dot dot--estimate"></i>估计</span>
+              <span><i class="dot dot--plan"></i>计划</span>
+              <span id="legendActual" hidden><i class="dot dot--actual"></i>实际</span>
+            </div>
+          </div>
+          <p class="chart-scroll-hint">← 左右滑动查看完整时间轴 →</p>
+          <div class="chart-wrap">
+            <svg id="speedChart" viewBox="0 0 860 390" role="img" aria-labelledby="speedChartTitle speedChartDesc">
+              <title id="speedChartTitle">G80 武汉至郑州东速度—时间估算图</title>
+              <desc id="speedChartDesc">横轴为时刻，纵轴为速度。折线显示停站、正常速度、限速和进站制动各段。</desc>
+            </svg>
+          </div>
+          <p class="chart-caption" id="chartCaption">
+            简洁分段模型：先以 300 千米/时走 60 分钟，再以 180 千米/时走完剩余路程。
+          </p>
+        </div>
+
+        <div class="breakdown-grid">
+          <article class="distance-card">
+            <div class="card-heading">
+              <h3>536 千米怎么分</h3>
+              <span class="tag tag--muted" id="distanceTag">简洁模型</span>
+            </div>
+            <div class="distance-bar" id="distanceBar" aria-hidden="true">
+              <span class="distance-before" id="distanceBeforeBar"></span>
+              <span class="distance-after" id="distanceAfterBar"></span>
+            </div>
+            <div class="distance-legend">
+              <div><i class="swatch swatch--before"></i><span>减速前</span><strong id="distanceBeforeLabel">300.0 千米</strong></div>
+              <div><i class="swatch swatch--after"></i><span>减速后</span><strong id="distanceAfterLabel">236.0 千米</strong></div>
+            </div>
+            <p class="card-note">两段路程相加必须回到 536 千米，这是模型的“里程校验”。</p>
+          </article>
+
+          <article class="formula-card">
+            <div class="card-heading">
+              <h3>算式</h3>
+              <span class="tag tag--muted">单位：分钟 / 千米</span>
+            </div>
+            <div class="formula-list" id="formulaList"></div>
+            <p class="formula-note" id="formulaNote">最后把 16:03:40 向上取整到分钟，报成 16:04。</p>
+          </article>
+        </div>
+
+        <div class="table-card">
+          <div class="card-heading">
+            <h3>分段记录表</h3>
+            <span class="tag tag--muted">速度 · 用时 · 路程</span>
+          </div>
+          <div class="table-scroll">
+            <table id="segmentTable">
+              <caption class="sr-only">按当前假设分段记录速度、用时和路程</caption>
+              <thead>
+                <tr>
+                  <th scope="col">阶段</th>
+                  <th scope="col">速度（千米/时）</th>
+                  <th scope="col" class="num">用时（分）</th>
+                  <th scope="col" class="num">路程（千米）</th>
+                </tr>
+              </thead>
+              <tbody id="segmentTableBody"></tbody>
+              <tfoot id="segmentTableFoot"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--tint" id="check" aria-labelledby="check-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-no">04</div>
+          <div>
+            <p class="section-kicker">检验</p>
+            <h2 id="check-title">实际记录来了，差在哪？</h2>
+            <p class="section-lede">先保留自己的估计，再拆开检验资料。估计偏早或偏晚，都要能说清原因。</p>
+          </div>
+        </div>
+
+        <div class="sealed-card" id="sealedCard">
+          <div class="sealed-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></svg>
+          </div>
+          <div>
+            <span class="sealed-kicker">检验资料 · 未拆封</span>
+            <h3>你的第一版估计留下了吗？</h3>
+            <p>先写下预计到站时刻和晚点分钟数，再领取当天的实际记录。</p>
+          </div>
+          <button class="button button--primary" type="button" id="revealBtn">
+            领取检验资料
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg>
+          </button>
+        </div>
+
+        <div class="actual-panel" id="actualPanel" hidden>
+          <div class="actual-head">
+            <div>
+              <span class="tag tag--actual">检验资料 · 已拆封</span>
+              <blockquote>
+                “16 时 13 分，列车驶入郑州东站，晚点 47 分。”
+              </blockquote>
+              <p class="actual-source">
+                —— 《羊城晚报》2012 年 12 月 27 日报道，
+                <a href="https://news.sina.com.cn/c/2012-12-27/063425904109.shtml" target="_blank" rel="noopener">原文转载</a>
+              </p>
+            </div>
+            <button class="text-button" type="button" id="resealBtn">重新封存</button>
+          </div>
+
+          <div class="error-grid">
+            <article class="compare-card">
+              <span>你的估计</span>
+              <strong id="cmpEstimate">16:04</strong>
+              <small id="cmpEstimateDelay">比计划晚 38 分钟</small>
+            </article>
+            <article class="compare-card compare-card--actual">
+              <span>实际到站</span>
+              <strong id="cmpActual">16:13</strong>
+              <small>比计划晚 47 分钟</small>
+            </article>
+            <article class="compare-card compare-card--error" id="cmpErrorCard">
+              <span>估计偏差</span>
+              <strong id="cmpError">早 9 分钟</strong>
+              <small>估计时刻 − 实际时刻</small>
+            </article>
+          </div>
+
+          <div class="error-banner" id="errorBanner">
+            你的估计比实际早 9 分钟。对赶时间的人来说，这 9 分钟足够让接站的人多等一会儿。
+          </div>
+
+          <div class="timeline-card">
+            <div class="card-heading">
+              <h3>三条时间线</h3>
+              <span class="tag tag--muted">13:30 — 16:30</span>
+            </div>
+            <p class="chart-scroll-hint">← 左右滑动查看完整时间轴 →</p>
+            <div class="compare-chart-wrap">
+              <svg id="compareChart" viewBox="0 0 860 260" role="img" aria-labelledby="compareTitle compareDesc">
+                <title id="compareTitle">计划、估计与实际到站时间对比</title>
+                <desc id="compareDesc">横向时间线比较计划到站 15:26、估计到站和实际到站 16:13。</desc>
+              </svg>
+            </div>
+            <p class="compare-caption" id="compareCaption">实际发车时刻没有给出，图中的实际时间线按估计发车时刻画出。</p>
+          </div>
+
+          <div class="why-grid">
+            <article class="why-card">
+              <span class="why-no">01</span>
+              <h3>180 只是“一度显示”</h3>
+              <p>它不是全程恒定速度。列车可能在某些路段低于 180，也可能再次遇到限速。</p>
+            </article>
+            <article class="why-card">
+              <span class="why-no">02</span>
+              <h3>“约 1 小时”不是精确时刻</h3>
+              <p>乘客察觉减速，往往已经晚于减速开始。减速开始得越早，到站就越晚。</p>
+            </article>
+            <article class="why-card">
+              <span class="why-no">03</span>
+              <h3>限速起止点未知</h3>
+              <p>任务单没有给限速区的起止里程和持续时间。限速段更长，估计就会被推晚。</p>
+            </article>
+            <article class="why-card">
+              <span class="why-no">04</span>
+              <h3>启停和天气也在改变速度</h3>
+              <p>加速、制动、风雪变化和调度调整，都会让真实速度曲线偏离“理想折线”。</p>
+            </article>
+          </div>
+
+          <div class="revision-card">
+            <div>
+              <span class="revision-kicker">模型修正</span>
+              <h3>把模型往实际方向修一修</h3>
+              <p id="requiredSpeedText">
+                如果其余假设不变，限速后平均速度约需 161 千米/时，才能 16:13 到站。
+              </p>
+              <p class="revision-note">这是反推出来的“等效速度”，不是当天真实的速度记录。</p>
+            </div>
+            <button class="button button--dark" type="button" id="solveBtn">把限速后速度改为 161</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="report" aria-labelledby="report-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="section-no">05</div>
+          <div>
+            <p class="section-kicker">汇报</p>
+            <h2 id="report-title">用一张图、一张表，说清你的估计</h2>
+            <p class="section-lede">把假设、结果、误差和下一步要查的资料，压缩成一段能讲给别人听的话。</p>
+          </div>
+        </div>
+
+        <div class="report-grid">
+          <article class="report-card">
+            <div class="group-fields">
+              <label>班级<input type="text" id="classInput" placeholder="例如：高一（3）班" autocomplete="off"></label>
+              <label>小组<input type="text" id="groupInput" placeholder="第 2 组" autocomplete="off"></label>
+              <label>成员<input type="text" id="membersInput" placeholder="组员姓名" autocomplete="off"></label>
+              <label>记录者<input type="text" id="recorderInput" placeholder="谁在记录" autocomplete="off"></label>
+            </div>
+
+            <div class="report-text-wrap">
+              <span class="report-label">小组汇报稿</span>
+              <p id="reportText"></p>
+            </div>
+
+            <div class="report-actions">
+              <button class="button button--primary" type="button" id="copyBtn">
+                <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="10" height="11" rx="2"/><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                复制汇报稿
+              </button>
+              <button class="button button--ghost-dark print-trigger" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+                打印学习单
+              </button>
+            </div>
+          </article>
+
+          <aside class="prompt-card">
+            <h3>汇报时可以用这三句话</h3>
+            <ol class="sentence-list">
+              <li>“我们把全程分成了 <strong>停站、正常速度、限速运行</strong> 几段。”</li>
+              <li>“在这些假设下，估计 <strong id="promptArrival">16:04</strong> 到，比计划晚 <strong id="promptDelay">38</strong> 分钟。”</li>
+              <li id="promptThird">“先保留估计，拿到实际记录后，再比较误差。”</li>
+            </ol>
+            <div class="prompt-divider"></div>
+            <h4>还可以继续查</h4>
+            <ul class="check-list">
+              <li>武汉站实际发车时刻</li>
+              <li>调度下达限速的起止时间和里程</li>
+              <li>列车速度记录或更细的运行图</li>
+              <li>当天风雪强度的变化</li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div>
+        <div class="footer-brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 2v20M4.2 6.5l15.6 11M19.8 6.5l-15.6 11M12 5.5l3-3M12 5.5l-3-3M12 18.5l3 3M12 18.5l-3 3"/></svg>
+          </span>
+          <div><strong>雾雪限速后，几点能到站？</strong><span>G80 · 专题三 · 高铁综合与实践</span></div>
+        </div>
+        <p class="footer-note">一个用于课堂估算与误差分析的交互页面。所有结果均为教学近似，不是铁路官方信息。</p>
+      </div>
+      <div class="footer-links">
+        <h4>资料与出处</h4>
+        <ul>
+          <li>任务情境与已知数据：学生任务单《专题三 雾雪限速后 G80 次会几点到站》</li>
+          <li>实际到站 16:13、晚点 47 分：<a href="https://news.sina.com.cn/c/2012-12-27/063425904109.shtml" target="_blank" rel="noopener">《羊城晚报》2012-12-27 报道</a></li>
+          <li>京广高铁首发与雾雪限速背景：<a href="http://politics.people.com.cn/n/2012/1227/c70731-20029520.html" target="_blank" rel="noopener">人民网 2012-12-27 报道</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <span>Made for math activity · 2012.12.26</span>
+      <a href="#top">回到顶部 ↑</a>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

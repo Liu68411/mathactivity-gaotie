@@ -10,7 +10,7 @@ import {
   formatClock,
   formatDuration,
   formatKm,
-} from './model.js?v=20261122-4';
+} from './model.js?v=20261122-5';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -622,16 +622,16 @@ function renderBreakdown(result) {
   els.distanceTag.textContent = modelLabel();
 
   const a = UNIFORM_ACCELERATION.toFixed(1);
-  const t1 = result.accelMinutes.toFixed(1);
+  const t1 = result.accelMinutes.toFixed(2);
   const s1 = result.accelDistance.toFixed(1);
-  const t2 = result.cruiseMinutes.toFixed(1);
+  const t2 = result.cruiseMinutes.toFixed(2);
   const s2 = result.cruiseDistance.toFixed(1);
-  const t3 = result.decelMinutes.toFixed(1);
+  const t3 = result.decelMinutes.toFixed(2);
   const s3 = result.decelDistance.toFixed(1);
-  const t4 = result.brakeMinutes.toFixed(1);
+  const t4 = result.brakeMinutes.toFixed(2);
   const s4 = result.brakeDistance.toFixed(1);
   const s5 = result.plateauDistance.toFixed(1);
-  const t5 = result.plateauMinutes.toFixed(1);
+  const t5 = result.plateauMinutes.toFixed(2);
 
   const actual = state.actualZhengzhouArrival;
   const error = result.arrivalRounded - actual;
@@ -712,7 +712,7 @@ function renderBreakdown(result) {
     .join('');
 
   els.formulaNote.textContent =
-    '以上数值保留 1 位小数；到站时刻向上取整到分钟。所有路程都用“平均速度 × 时间 ÷ 60”计算。';
+    '中间时间保留 2 位小数，路程和最终结果保留 1 位小数；到站时刻向上取整到分钟。所有路程都用“平均速度 × 时间 ÷ 60”计算。';
 }
 
 function speedLabel(segment) {

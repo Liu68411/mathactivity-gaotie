@@ -10,7 +10,7 @@ import {
   formatClock,
   formatDuration,
   formatKm,
-} from './model.js?v=20261122-3';
+} from './model.js?v=20261122-4';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -621,44 +621,98 @@ function renderBreakdown(result) {
   els.distanceAfterLabel.textContent = formatKm(after);
   els.distanceTag.textContent = modelLabel();
 
-  const rows = [];
-  rows.push(['武汉发车', `${formatClock(state.actualWuhanArrival)} + ${state.dwell} 分 = ${formatClock(result.departure)}`]);
-  rows.push([
-    '匀加速',
-    `0→${state.v1}，${result.accelMinutes.toFixed(1)} 分 / ${result.accelDistance.toFixed(1)} 千米`,
-  ]);
-  rows.push([
-    `${state.v1} 千米/时 匀速`,
-    `${result.cruiseMinutes.toFixed(1)} 分 / ${result.cruiseDistance.toFixed(1)} 千米`,
-  ]);
-  rows.push([
-    '匀减速至限速',
-    `${state.v1}→${state.v2}，${result.decelMinutes.toFixed(1)} 分 / ${result.decelDistance.toFixed(1)} 千米`,
-  ]);
-  rows.push([
-    `${state.v2} 千米/时 限速`,
-    `${result.plateauMinutes.toFixed(1)} 分 / ${result.plateauDistance.toFixed(1)} 千米`,
-  ]);
-  rows.push([
-    '匀减速进站',
-    `${state.v2}→0，${result.brakeMinutes.toFixed(1)} 分 / ${result.brakeDistance.toFixed(1)} 千米`,
-  ]);
-  rows.push(['到站时刻', `${formatClock(result.arrival, true)} ≈ ${formatClock(result.arrivalRounded)}`]);
-  rows.push(['预计晚点', `${formatClock(result.arrivalRounded)} − 15:26 = ${result.delayRounded} 分`]);
+  const a = UNIFORM_ACCELERATION.toFixed(1);
+  const t1 = result.accelMinutes.toFixed(1);
+  const s1 = result.accelDistance.toFixed(1);
+  const t2 = result.cruiseMinutes.toFixed(1);
+  const s2 = result.cruiseDistance.toFixed(1);
+  const t3 = result.decelMinutes.toFixed(1);
+  const s3 = result.decelDistance.toFixed(1);
+  const t4 = result.brakeMinutes.toFixed(1);
+  const s4 = result.brakeDistance.toFixed(1);
+  const s5 = result.plateauDistance.toFixed(1);
+  const t5 = result.plateauMinutes.toFixed(1);
 
-  els.formulaList.innerHTML = rows
+  const actual = state.actualZhengzhouArrival;
+  const error = result.arrivalRounded - actual;
+  const actualDirection = error > 0 ? '偏晚' : error < 0 ? '偏早' : '刚好相同';
+  const actualStep = state.actualRevealed
+    ? {
+        label: '与实际比较',
+        math: `${formatClock(result.arrivalRounded)} − ${formatClock(actual)} = ${Math.abs(error)} 分`,
+        note: `估计${actualDirection}${error === 0 ? '' : ` ${Math.abs(error)} 分钟`}`,
+      }
+    : {
+        label: '与实际比较',
+        math: '实际到站：待填入',
+        note: '领取检验资料后，再用同样的方法比较误差',
+        sealed: true,
+      };
+
+  const steps = [
+    {
+      label: '加速度',
+      math: `a = ${ACCEL_REFERENCE_SPEED} ÷ ${ACCEL_REFERENCE_MINUTES} = ${a} 千米/时/分`,
+      note: '15 分钟从 0 加速到 350 千米/时',
+    },
+    {
+      label: '匀加速段',
+      math: `t₁ = ${state.v1} ÷ ${a} ≈ ${t1} 分<br>s₁ = ½ × ${state.v1} × ${t1} ÷ 60 ≈ ${s1} 千米`,
+      note: '平均速度 × 时间；½ 来自匀加速',
+    },
+    {
+      label: `${state.v1} 千米/时 匀速段`,
+      math: `t₂ = ${state.preSlow} − ${t1} = ${t2} 分<br>s₂ = ${state.v1} × ${t2} ÷ 60 ≈ ${s2} 千米`,
+      note: `出站后 ${state.preSlow} 分钟开始减速`,
+    },
+    {
+      label: '匀减速到限速',
+      math: `t₃ = (${state.v1} − ${state.v2}) ÷ ${a} ≈ ${t3} 分<br>s₃ = (${state.v1} + ${state.v2}) ÷ 2 × ${t3} ÷ 60 ≈ ${s3} 千米`,
+      note: '平均速度 = 初速与末速的平均',
+    },
+    {
+      label: '匀减速进站',
+      math: `t₄ = ${state.v2} ÷ ${a} ≈ ${t4} 分<br>s₄ = ${state.v2} ÷ 2 × ${t4} ÷ 60 ≈ ${s4} 千米`,
+      note: `末速度为 0，平均速度是 ${state.v2} 的一半`,
+    },
+    {
+      label: '限速段路程',
+      math: `s₅ = ${result.distance.toFixed(0)} − ${s1} − ${s2} − ${s3} − ${s4} = ${s5} 千米`,
+      note: '用总里程减去其余各段',
+    },
+    {
+      label: '限速段用时',
+      math: `t₅ = ${s5} ÷ ${state.v2} × 60 ≈ ${t5} 分`,
+      note: 's = v t，所以 t = s ÷ v',
+    },
+    {
+      label: '到站时刻与晚点',
+      math: `T = ${formatClock(result.departure)} + ${state.preSlow} + ${t3} + ${t5} + ${t4}<br>= ${formatClock(
+        result.arrival,
+        true
+      )} ≈ ${formatClock(result.arrivalRounded)}<br>${formatClock(result.arrivalRounded)} − 15:26 = ${result.delayRounded} 分`,
+      note: '最后把到站时刻向上取整到分钟',
+    },
+    actualStep,
+  ];
+
+  els.formulaList.innerHTML = steps
     .map(
-      ([label, value], index) =>
-        `<div class="formula-row${index === rows.length - 1 ? ' formula-row--total' : ''}"><span>${label}</span><strong>${value}</strong></div>`
+      (step, index) => `
+        <div class="calc-step${step.sealed ? ' calc-step--sealed' : ''}">
+          <span class="calc-no">${index + 1}</span>
+          <div class="calc-body">
+            <div class="calc-label">${step.label}</div>
+            <div class="calc-math">${step.math}</div>
+            <div class="calc-note">${step.note}</div>
+          </div>
+        </div>
+      `
     )
     .join('');
 
-  const rounding = Number.isInteger(result.arrival)
-    ? `到站时刻恰好是整分钟，报成 ${formatClock(result.arrivalRounded)}。`
-    : `最后把 ${formatClock(result.arrival, true)} 向上取整到分钟，报成 ${formatClock(result.arrivalRounded)}。`;
-  els.formulaNote.textContent = `${rounding}加速度 a = ${ACCEL_REFERENCE_SPEED} ÷ ${ACCEL_REFERENCE_MINUTES} ≈ ${UNIFORM_ACCELERATION.toFixed(
-    1
-  )} 千米/时/分，三段变速都按匀变速处理。`;
+  els.formulaNote.textContent =
+    '以上数值保留 1 位小数；到站时刻向上取整到分钟。所有路程都用“平均速度 × 时间 ÷ 60”计算。';
 }
 
 function speedLabel(segment) {

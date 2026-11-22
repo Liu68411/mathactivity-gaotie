@@ -65,6 +65,9 @@ def main():
     check(cdp.ev("document.querySelector('#distanceChart').innerHTML.length") > 1000, "s-t chart drawn")
     check("斜率" in cdp.ev("document.querySelector('#distanceChartCaption').textContent"), "s-t caption slope")
     check(cdp.ev("document.querySelector('#legendDistanceActual').hidden") is True, "s-t actual legend hidden")
+    check(cdp.ev("document.querySelectorAll('.calc-step').length") == 9, "nine calculation steps")
+    check("s₁ = ½ × 300" in cdp.ev("document.querySelector('#formulaList').textContent"), "acceleration distance formula")
+    check("16:16:31" in cdp.ev("document.querySelector('#formulaList').textContent"), "arrival formula")
 
     cdp.ev(
         "(() => { const el=document.querySelector('#preSlow'); el.value=50; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
@@ -88,6 +91,7 @@ def main():
     check(cdp.ev("document.querySelector('#actualPanel').hidden === false"), "actual panel revealed")
     check(cdp.ev("document.querySelector('#legendDistanceActual').hidden === false"), "s-t actual legend shown")
     check(cdp.ev("document.querySelector('#cmpError').textContent").strip() == "晚 4 分钟", "error 4 min late")
+    check("16:17 − 16:13 = 4 分" in cdp.ev("document.querySelector('#formulaList').textContent"), "actual comparison formula")
     check(cdp.ev("document.querySelector('#solveBtn').textContent").strip().endswith("189"), "solve button 189")
 
     cdp.ev("document.querySelector('#solveBtn').click()")

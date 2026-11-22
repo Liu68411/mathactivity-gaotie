@@ -1904,7 +1904,7 @@ input[type="range"]:focus-visible {
 
 .breakdown-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 26px;
   margin-top: 26px;
 }
@@ -1986,7 +1986,69 @@ input[type="range"]:focus-visible {
 }
 
 .formula-list {
-  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  margin-top: 14px;
+}
+
+.calc-step {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #e8ecf5;
+  border-radius: 13px;
+  background: #f8faff;
+}
+
+.calc-no {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--indigo-soft);
+  color: var(--indigo-bright);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.calc-body {
+  min-width: 0;
+}
+
+.calc-label {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.calc-math {
+  margin-top: 3px;
+  color: var(--indigo);
+  font-family: var(--mono);
+  font-size: 10.8px;
+  line-height: 1.7;
+  word-break: break-word;
+}
+
+.calc-note {
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: 9.5px;
+  line-height: 1.55;
+}
+
+.calc-step--sealed {
+  border-style: dashed;
+  background: #fbfcff;
+}
+
+.calc-step--sealed .calc-math {
+  color: var(--muted-2);
 }
 
 .formula-row {
@@ -3024,6 +3086,10 @@ tfoot tr td:last-child {
   .control-grid {
     grid-template-columns: 1fr;
     gap: 20px;
+  }
+
+  .formula-list {
+    grid-template-columns: 1fr;
   }
 
   .calibration-top strong {

@@ -7,7 +7,7 @@ import {
   formatClock,
   formatDuration,
   formatKm,
-} from './model.js';
+} from './model.js?v=20261122-1';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));

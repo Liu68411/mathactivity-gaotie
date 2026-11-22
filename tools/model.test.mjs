@@ -5,6 +5,7 @@ import {
   UNIFORM_ACCELERATION,
   DEFAULTS,
   computeEstimate,
+  buildDistanceTimeSeries,
   estimateRange,
   solveLimitedSpeed,
   formatClock,
@@ -42,6 +43,14 @@ assert.equal(fixed.delayRounded, 47);
 
 const solved = solveLimitedSpeed(16 * 60 + 13, DEFAULTS);
 assert.ok(Math.abs(solved - 188.4410646) < 0.001, `solved ${solved}`);
+
+const series = buildDistanceTimeSeries(DEFAULTS);
+assert.equal(series.points[0].t, DEFAULTS.actualWuhanArrival);
+assert.equal(series.points[0].s, 0);
+assert.ok(Math.abs(series.points.at(-1).t - simple.arrival) < 1e-9);
+assert.equal(series.points.at(-1).s, 536);
+assert.ok(series.points.length > 50);
+assert.ok(series.points.every((point, index) => index === 0 || point.s >= series.points[index - 1].s - 1e-9));
 
 const range = estimateRange(DEFAULTS);
 assert.equal(formatClock(range.min), '16:10');

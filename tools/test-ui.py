@@ -62,6 +62,9 @@ def main():
     check(cdp.ev("document.querySelectorAll('#segmentTableBody tr').length") == 6, "six uniform segments")
     check("12.9" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "acceleration note 12.9")
     check("23.3" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "acceleration note 23.3")
+    check(cdp.ev("document.querySelector('#distanceChart').innerHTML.length") > 1000, "s-t chart drawn")
+    check("斜率" in cdp.ev("document.querySelector('#distanceChartCaption').textContent"), "s-t caption slope")
+    check(cdp.ev("document.querySelector('#legendDistanceActual').hidden") is True, "s-t actual legend hidden")
 
     cdp.ev(
         "(() => { const el=document.querySelector('#preSlow'); el.value=50; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
@@ -83,6 +86,7 @@ def main():
     cdp.ev("document.querySelector('#revealBtn').click()")
     time.sleep(0.5)
     check(cdp.ev("document.querySelector('#actualPanel').hidden === false"), "actual panel revealed")
+    check(cdp.ev("document.querySelector('#legendDistanceActual').hidden === false"), "s-t actual legend shown")
     check(cdp.ev("document.querySelector('#cmpError').textContent").strip() == "晚 4 分钟", "error 4 min late")
     check(cdp.ev("document.querySelector('#solveBtn').textContent").strip().endswith("189"), "solve button 189")
 
@@ -95,7 +99,8 @@ def main():
     cdp.ev("document.querySelector('#resealBtn').click()")
     time.sleep(0.3)
     check(cdp.ev("document.querySelector('#actualPanel').hidden === true"), "actual panel resealed")
-    check(cdp.ev("document.querySelector('#legendActual').hidden === true"), "legend actual hidden")
+    check(cdp.ev("document.querySelector('#legendActual').hidden === true"), "v-t legend actual hidden")
+    check(cdp.ev("document.querySelector('#legendDistanceActual').hidden === true"), "s-t legend actual hidden again")
 
     errors = cdp.ev("window.__uiErrors || []")
     check(not errors, f"no runtime errors: {errors}")

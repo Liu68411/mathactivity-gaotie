@@ -1748,7 +1748,8 @@ input[type="range"]:focus-visible {
   display: inline-block;
 }
 
-.dot--estimate {
+.dot--estimate,
+.dot--distance {
   background: var(--indigo-bright);
 }
 
@@ -1843,6 +1844,26 @@ input[type="range"]:focus-visible {
   stroke-dasharray: 3 4;
 }
 
+.chart-line--distance {
+  stroke: var(--indigo-bright);
+  stroke-width: 2.7;
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart-line--dwell {
+  stroke: #9aa4ba;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.chart-line--target {
+  stroke: #c7cede;
+  stroke-width: 1.2;
+  stroke-dasharray: 4 5;
+}
+
 .chart-vlabel {
   font-family: var(--font);
   font-size: 10px;
@@ -1857,6 +1878,10 @@ input[type="range"]:focus-visible {
   fill: #5c6683;
   font-family: var(--font);
   font-size: 9.5px;
+  paint-order: stroke;
+  stroke: #fbfcff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 .chart-dot {

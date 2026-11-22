@@ -4,12 +4,13 @@ import {
   UNIFORM_ACCELERATION,
   DEFAULTS,
   computeEstimate,
+  buildDistanceTimeSeries,
   estimateRange,
   solveLimitedSpeed,
   formatClock,
   formatDuration,
   formatKm,
-} from './model.js?v=20261122-2';
+} from './model.js?v=20261122-3';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -47,6 +48,9 @@ function cacheElements() {
 
   els.speedChart = $('#speedChart');
   els.chartCaption = $('#chartCaption');
+  els.distanceChart = $('#distanceChart');
+  els.distanceChartCaption = $('#distanceChartCaption');
+  els.legendDistanceActual = $('#legendDistanceActual');
 
   els.distanceBar = $('#distanceBar');
   els.distanceBeforeBar = $('#distanceBeforeBar');
@@ -140,6 +144,7 @@ function renderAll() {
   renderResult(result, range);
   renderAnswer(result);
   renderSpeedChart(result);
+  renderDistanceChart(result);
   renderBreakdown(result);
   renderTable(result);
   renderPrintSummary(result);
@@ -406,6 +411,192 @@ function renderSpeedChart(result) {
   const modelName = modelLabel();
   const actualText = actual ? `绿色虚线是实际到站 ${formatClock(actual)}。` : '实际到站要等“检验”环节再揭晓。';
   els.chartCaption.textContent = `${modelName}：折线下的面积就是路程。${actualText}`;
+}
+
+function renderDistanceChart(result) {
+  const svg = els.distanceChart;
+  if (!svg) return;
+
+  if (!result.valid) {
+    svg.innerHTML = `
+      <rect x="0" y="0" width="860" height="390" fill="#fbfcff"></rect>
+      <text x="430" y="190" text-anchor="middle" fill="#8a93aa" font-size="14">当前假设走不完 536 千米</text>
+      <text x="430" y="214" text-anchor="middle" fill="#a5aec2" font-size="11">请调整假设后再画 s-t 图</text>
+    `;
+    els.distanceChartCaption.textContent = '调整假设后，这里会重新画出路程—时间图。';
+    return;
+  }
+
+  const series = buildDistanceTimeSeries(state);
+  if (!series) return;
+
+  const actual = state.actualRevealed ? state.actualZhengzhouArrival : null;
+  const times = [
+    state.actualWuhanArrival,
+    result.departure,
+    result.slowStart,
+    result.slowEnd,
+    result.arrival,
+    state.plannedZhengzhouArrival,
+  ];
+  if (actual) times.push(actual);
+
+  const minT = Math.floor((Math.min(...times) - 10) / 10) * 10;
+  const maxT = Math.ceil((Math.max(...times) + 15) / 10) * 10;
+  const W = 860;
+  const H = 390;
+  const L = 66;
+  const R = 32;
+  const T = 58;
+  const B = 48;
+  const plotW = W - L - R;
+  const plotH = H - T - B;
+  const yMax = 600;
+  const x = (t) => L + ((t - minT) / (maxT - minT)) * plotW;
+  const y = (s) => T + plotH - (s / yMax) * plotH;
+
+  let grid = '';
+  for (let t = Math.ceil(minT / 30) * 30; t <= maxT; t += 30) {
+    const px = x(t);
+    grid += `<line x1="${px.toFixed(1)}" y1="${T}" x2="${px.toFixed(1)}" y2="${T + plotH}" class="chart-grid"/>`;
+    grid += svgText(px, H - 22, formatClock(t), 'chart-axis-label', 'text-anchor="middle"');
+  }
+  for (let s = 0; s <= yMax; s += 100) {
+    const py = y(s);
+    grid += `<line x1="${L}" y1="${py.toFixed(1)}" x2="${L + plotW}" y2="${py.toFixed(1)}" class="chart-grid"/>`;
+    grid += svgText(L - 10, py + 3, String(s), 'chart-axis-label', 'text-anchor="end"');
+  }
+
+  const toPath = (points) =>
+    points
+      .map((point, index) => `${index === 0 ? 'M' : 'L'} ${x(point.t).toFixed(1)} ${y(point.s).toFixed(1)}`)
+      .join(' ');
+
+  const dwellPoints = series.points.filter((point) => point.t <= result.departure + 1e-9);
+  const motionPoints = series.points.filter((point) => point.t >= result.departure - 1e-9);
+
+  const planX = x(state.plannedZhengzhouArrival);
+  const estimateX = x(result.arrival);
+  const actualX = actual ? x(actual) : null;
+  const labelAnchor = (px) => {
+    if (px > L + plotW - 68) return ['end', -4];
+    if (px < L + 68) return ['start', 4];
+    return ['middle', 0];
+  };
+  const planAnchor = labelAnchor(planX);
+  const estAnchor = labelAnchor(estimateX);
+  const actualAnchor = actualX ? labelAnchor(actualX) : null;
+
+  let markers = '';
+  markers += `<line x1="${L}" y1="${y(536).toFixed(1)}" x2="${L + plotW}" y2="${y(536).toFixed(
+    1
+  )}" class="chart-line--target"/>`;
+  markers += svgText(L + 8, y(536) - 7, '郑州东 s = 536 千米', 'chart-annotation', 'text-anchor="start"');
+
+  markers += `<line x1="${planX.toFixed(1)}" y1="${T}" x2="${planX.toFixed(1)}" y2="${T + plotH}" class="chart-line chart-line--plan"/>`;
+  markers += svgText(
+    planX + planAnchor[1],
+    19,
+    `计划 ${formatClock(state.plannedZhengzhouArrival)}`,
+    'chart-vlabel',
+    `text-anchor="${planAnchor[0]}" fill="#b8731f"`
+  );
+
+  markers += `<line x1="${estimateX.toFixed(1)}" y1="${T}" x2="${estimateX.toFixed(1)}" y2="${T + plotH}" class="chart-line chart-line--estimate"/>`;
+  markers += svgText(
+    estimateX + estAnchor[1],
+    36,
+    `估计 ${formatClock(result.arrivalRounded)}`,
+    'chart-vlabel',
+    `text-anchor="${estAnchor[0]}" fill="#3e47a8"`
+  );
+
+  if (actualX) {
+    markers += `<line x1="${actualX.toFixed(1)}" y1="${T}" x2="${actualX.toFixed(1)}" y2="${T + plotH}" class="chart-line chart-line--actual"/>`;
+    markers += svgText(
+      actualX + actualAnchor[1],
+      53,
+      `实际 ${formatClock(actual)}`,
+      'chart-vlabel',
+      `text-anchor="${actualAnchor[0]}" fill="#1f7d61"`
+    );
+  }
+
+  const transitionDots = [
+    [result.departure + result.accelMinutes, result.accelDistance],
+    [result.slowStart, result.accelDistance + result.cruiseDistance],
+    [result.slowEnd, result.beforeSlowDistance],
+    [result.arrival - result.brakeMinutes, result.distance - result.brakeDistance],
+  ]
+    .map(
+      ([t, s]) =>
+        `<circle cx="${x(t).toFixed(1)}" cy="${y(s).toFixed(1)}" r="2.6" class="chart-dot"/>`
+    )
+    .join('');
+
+  const planDot = `<circle cx="${planX.toFixed(1)}" cy="${y(536).toFixed(
+    1
+  )}" r="3.8" class="chart-dot chart-dot--plan"/>`;
+  const estimateDot = `<circle cx="${estimateX.toFixed(1)}" cy="${y(536).toFixed(
+    1
+  )}" r="4" class="chart-dot"/>`;
+  const actualDot = actualX
+    ? `<circle cx="${actualX.toFixed(1)}" cy="${y(536).toFixed(1)}" r="4" class="chart-dot chart-dot--actual"/>`
+    : '';
+
+  const dwellMid = (state.actualWuhanArrival + result.departure) / 2;
+  const accelMid = result.departure + result.accelMinutes / 2;
+  const cruiseMid = result.departure + result.accelMinutes + result.cruiseMinutes / 2;
+  const plateauMid = result.slowEnd + result.plateauMinutes / 2;
+
+  const annotations = `
+    ${svgText(
+      x(dwellMid) - 6,
+      y(0) - 10,
+      `停站 ${state.dwell} 分`,
+      'chart-annotation',
+      'text-anchor="end"'
+    )}
+    ${svgText(x(accelMid), y(result.accelDistance / 4) - 8, '匀加速', 'chart-annotation', 'text-anchor="middle"')}
+    ${svgText(
+      x(cruiseMid),
+      y(result.accelDistance + result.cruiseDistance / 2) - 14,
+      `${state.v1} 千米/时`,
+      'chart-annotation',
+      'text-anchor="middle"'
+    )}
+    ${svgText(
+      x(plateauMid),
+      y(result.beforeSlowDistance + result.plateauDistance / 2) - 14,
+      `${state.v2} 千米/时`,
+      'chart-annotation',
+      'text-anchor="middle"'
+    )}
+  `;
+
+  svg.innerHTML = `
+    <rect x="0" y="0" width="${W}" height="${H}" fill="#fbfcff"/>
+    ${grid}
+    <line x1="${L}" y1="${T + plotH}" x2="${L + plotW}" y2="${T + plotH}" class="chart-axis"/>
+    <line x1="${L}" y1="${T}" x2="${L}" y2="${T + plotH}" class="chart-axis"/>
+    ${svgText(10, 18, '路程 s (千米)', 'chart-axis-title', 'text-anchor="start"')}
+    ${svgText(L + plotW, H - 6, '时刻', 'chart-axis-title', 'text-anchor="end"')}
+    <path d="${toPath(dwellPoints)}" class="chart-line--dwell"/>
+    <path d="${toPath(motionPoints)}" class="chart-line--distance"/>
+    ${markers}
+    ${transitionDots}
+    ${planDot}
+    ${estimateDot}
+    ${actualDot}
+    ${annotations}
+  `;
+
+  const actualText = actual
+    ? `绿色虚线标出实际到站 ${formatClock(actual)}，与估计相差 ${Math.abs(
+        result.arrivalRounded - actual
+      )} 分钟。`
+    : '实际到站仍封存在“检验资料”里。';
+  els.distanceChartCaption.textContent = `s-t 图的斜率就是速度：越陡越快，水平段表示停站。${actualText}`;
 }
 
 function renderBreakdown(result) {
@@ -773,6 +964,7 @@ function revealActual() {
   els.sealedCard.hidden = true;
   els.actualPanel.hidden = false;
   els.legendActual.hidden = false;
+  els.legendDistanceActual.hidden = false;
   renderAll();
   els.actualPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -783,6 +975,7 @@ function resealActual() {
   els.actualPanel.hidden = true;
   els.sealedCard.hidden = false;
   els.legendActual.hidden = true;
+  els.legendDistanceActual.hidden = true;
   renderAll();
   els.sealedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -1024,6 +1217,7 @@ function applyInitialReveal() {
   els.sealedCard.hidden = true;
   els.actualPanel.hidden = false;
   els.legendActual.hidden = false;
+  els.legendDistanceActual.hidden = false;
 }
 
 function init() {

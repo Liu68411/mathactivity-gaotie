@@ -11,8 +11,8 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="assets/hero.jpg">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/style.css?v=20261122-2">
-  <script type="module" src="assets/app.js?v=20261122-2"></script>
+  <link rel="stylesheet" href="assets/style.css?v=20261122-3">
+  <script type="module" src="assets/app.js?v=20261122-3"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -355,7 +355,7 @@
           <div>
             <p class="section-kicker">估算</p>
             <h2 id="estimate-title">先算出一个能报给家人的时间</h2>
-            <p class="section-lede">用一张速度—时间图、一张分段表，把“怎么估的”讲清楚。</p>
+            <p class="section-lede">用速度—时间图、路程—时间图和一张分段表，把“怎么估的”讲清楚。</p>
           </div>
         </div>
 
@@ -397,6 +397,30 @@
           </div>
           <p class="chart-caption" id="chartCaption">
             匀变速模型：启动、降至限速和进站制动都按同一加速度计算，折线下的面积就是路程。
+          </p>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-head">
+            <div>
+              <h3>路程—时间图（s-t）</h3>
+              <p>纵轴是离武汉的累计路程；曲线越陡，速度越快，水平段表示停站。</p>
+            </div>
+            <div class="legend" aria-label="图例">
+              <span><i class="dot dot--distance"></i>估计路程</span>
+              <span><i class="dot dot--plan"></i>计划到站</span>
+              <span id="legendDistanceActual" hidden><i class="dot dot--actual"></i>实际到站</span>
+            </div>
+          </div>
+          <p class="chart-scroll-hint">← 左右滑动查看完整时间轴 →</p>
+          <div class="chart-wrap">
+            <svg id="distanceChart" viewBox="0 0 860 390" role="img" aria-labelledby="distanceChartTitle distanceChartDesc">
+              <title id="distanceChartTitle">G80 武汉至郑州东路程—时间图</title>
+              <desc id="distanceChartDesc">横轴为时刻，纵轴为离武汉的累计路程。曲线先水平表示停站，再逐渐变陡表示加速，随后以不同斜率表示正常速度、限速和进站制动。</desc>
+            </svg>
+          </div>
+          <p class="chart-caption" id="distanceChartCaption">
+            s-t 图把 536 千米的行程画成一条不断上升的曲线；斜率的快慢就是速度。
           </p>
         </div>
 

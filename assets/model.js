@@ -233,6 +233,71 @@ export function computeEstimate(input) {
 }
 
 /**
+ * 生成 s-t 图（累计路程—时间）的采样点。
+ * 停站在 s=0 处水平；加速、减速、制动按匀变速曲线采样。
+ */
+export function buildDistanceTimeSeries(input) {
+  const result = computeEstimate(input);
+  if (!result.valid) return null;
+
+  const points = [];
+  const push = (t, s) => {
+    if (points.length && Math.abs(points[points.length - 1].t - t) < 1e-9) {
+      points[points.length - 1].s = s;
+    } else {
+      points.push({ t, s });
+    }
+  };
+
+  const a = result.acceleration;
+  const v1 = Number(result.input.v1);
+  const v2 = Number(result.input.v2);
+  const samples = 24;
+
+  // 武汉站停站：从实际到达开始，s 保持为 0。
+  push(Number(result.input.actualWuhanArrival), 0);
+  push(result.departure, 0);
+
+  // 匀加速：s = 1/2 a t²（t 以分钟计，再除以 60 换成小时）。
+  for (let i = 1; i <= samples; i += 1) {
+    const tau = (result.accelMinutes * i) / samples;
+    push(result.departure + tau, (0.5 * a * tau * tau) / 60);
+  }
+
+  // 匀速到开始减速。
+  const sAccelEnd = result.accelDistance;
+  const sCruiseEnd = sAccelEnd + result.cruiseDistance;
+  if (result.cruiseMinutes > 0) {
+    push(result.slowStart, sCruiseEnd);
+  }
+
+  // 匀减速到限速速度。
+  for (let i = 1; i <= samples; i += 1) {
+    const tau = (result.decelMinutes * i) / samples;
+    const s = sCruiseEnd + (v1 * tau) / 60 - (0.5 * a * tau * tau) / 60;
+    push(result.slowStart + tau, s);
+  }
+  const sSlowEnd = sCruiseEnd + result.decelDistance;
+
+  // 限速段匀速。
+  const brakeStart = result.arrival - result.brakeMinutes;
+  push(brakeStart, sSlowEnd + result.plateauDistance);
+
+  // 匀减速进站。
+  const sBrakeStart = sSlowEnd + result.plateauDistance;
+  for (let i = 1; i <= samples; i += 1) {
+    const tau = (result.brakeMinutes * i) / samples;
+    const s = sBrakeStart + (v2 * tau) / 60 - (0.5 * a * tau * tau) / 60;
+    push(result.arrival - result.brakeMinutes + tau, s);
+  }
+
+  return {
+    result,
+    points,
+  };
+}
+
+/**
  * 让“约 1 小时”在 50—70 分钟之间摆动，看看估计值有多敏感。
  * 这不是置信区间，只是单变量敏感性检查。
  */

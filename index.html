@@ -11,8 +11,8 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="assets/hero.jpg">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/style.css?v=20261122-6">
-  <script type="module" src="assets/app.js?v=20261122-6"></script>
+  <link rel="stylesheet" href="assets/style.css?v=20261122-7">
+  <script type="module" src="assets/app.js?v=20261122-7"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -79,7 +79,7 @@
           <dl class="hero-facts">
             <div>
               <dt>区间里程</dt>
-              <dd>536 <small>千米</small></dd>
+              <dd>536 <small>km</small></dd>
             </div>
             <div>
               <dt>速度变化</dt>
@@ -179,7 +179,7 @@
               </div>
               <div>
                 <dt>武汉至郑州东</dt>
-                <dd>约 536 <small>千米</small></dd>
+                <dd>约 536 <small>km</small></dd>
               </div>
               <div>
                 <dt>当时线路运营速度</dt>
@@ -316,7 +316,7 @@
 
             <div class="assumption-note">
               <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
-              <p>默认停站 0.05 h（3 分钟），沿用武汉站计划停站时间；实际发车时刻任务单没有给出。区间里程固定为 536 km。</p>
+              <p>默认停站 0.05 h，沿用武汉站计划停站时间；实际发车时刻任务单没有给出。区间里程固定为 536 km。</p>
             </div>
           </div>
 
@@ -435,8 +435,8 @@
               <span class="distance-after" id="distanceAfterBar"></span>
             </div>
             <div class="distance-legend">
-              <div><i class="swatch swatch--before"></i><span>降至限速前</span><strong id="distanceBeforeLabel">288.4 千米</strong></div>
-              <div><i class="swatch swatch--after"></i><span>降至限速后</span><strong id="distanceAfterLabel">247.6 千米</strong></div>
+              <div><i class="swatch swatch--before"></i><span>降至限速前</span><strong id="distanceBeforeLabel">288.4 km</strong></div>
+              <div><i class="swatch swatch--after"></i><span>降至限速后</span><strong id="distanceAfterLabel">247.6 km</strong></div>
             </div>
             <p class="card-note">两段路程相加必须回到 536 km，这是模型的“里程校验”。</p>
           </article>
@@ -447,14 +447,14 @@
               <span class="tag tag--muted">代入数值 · 单位：h / km</span>
             </div>
             <div class="formula-list" id="formulaList"></div>
-            <p class="formula-note" id="formulaNote">所有物理量统一用 km 和 h；速度用 km/h。匀变速段用 v平均=(v初+v末)÷2 和 s=v平均×t。</p>
+            <p class="formula-note" id="formulaNote">每个物理量都带单位：路程 km、时间 h、速度 km/h；式中“÷2”是求平均的比例系数，无单位，钟表时刻用 h:mm 表示。</p>
           </article>
         </div>
 
         <div class="table-card">
           <div class="card-heading">
             <h3>分段记录表</h3>
-            <span class="tag tag--muted">速度 · 用时 · 路程</span>
+            <span class="tag tag--muted">每个数都带单位</span>
           </div>
           <div class="table-scroll">
             <table id="segmentTable">
@@ -462,9 +462,9 @@
               <thead>
                 <tr>
                   <th scope="col">阶段</th>
-                  <th scope="col">速度（km/h）</th>
-                  <th scope="col" class="num">用时（h）</th>
-                  <th scope="col" class="num">路程（km）</th>
+                  <th scope="col">速度</th>
+                  <th scope="col" class="num">用时</th>
+                  <th scope="col" class="num">路程</th>
                 </tr>
               </thead>
               <tbody id="segmentTableBody"></tbody>

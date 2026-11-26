@@ -66,7 +66,7 @@ export function formatDuration(minutes) {
 
 export function formatKm(km) {
   if (!Number.isFinite(km)) return '—';
-  return `${km.toFixed(1)} 千米`;
+  return `${km.toFixed(1)} km`;
 }
 
 export function formatSpeed(speed) {

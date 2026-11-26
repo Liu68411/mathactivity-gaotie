@@ -9,7 +9,7 @@ import {
   formatClock,
   formatHours,
   formatKm,
-} from './model.js?v=20261122-6';
+} from './model.js?v=20261122-7';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -238,7 +238,7 @@ function renderAnswer(result) {
   if (!result.valid) {
     els.bigArrival.textContent = '—';
     els.bigDelay.textContent = '—';
-    els.answerSub.textContent = '当前假设走不完 536 千米，请先调整左侧参数。';
+    els.answerSub.textContent = '当前假设走不完 536 km，请先调整参数。';
     return;
   }
 
@@ -261,8 +261,8 @@ function renderSpeedChart(result) {
   if (!result.valid) {
     svg.innerHTML = `
       <rect x="0" y="0" width="860" height="390" fill="#fbfcff"></rect>
-      <text x="430" y="190" text-anchor="middle" fill="#8a93aa" font-size="14">当前假设走不完 536 千米</text>
-      <text x="430" y="214" text-anchor="middle" fill="#a5aec2" font-size="11">请缩短“减速前运行时间”或降低速度</text>
+      <text x="430" y="190" text-anchor="middle" fill="#8a93aa" font-size="14">当前假设走不完 536 km</text>
+      <text x="430" y="214" text-anchor="middle" fill="#a5aec2" font-size="11">请调整假设后重试</text>
     `;
     els.chartCaption.textContent = '调整假设后，这里会重新画出速度—时间图。';
     return;
@@ -428,7 +428,7 @@ function renderDistanceChart(result) {
   if (!result.valid) {
     svg.innerHTML = `
       <rect x="0" y="0" width="860" height="390" fill="#fbfcff"></rect>
-      <text x="430" y="190" text-anchor="middle" fill="#8a93aa" font-size="14">当前假设走不完 536 千米</text>
+      <text x="430" y="190" text-anchor="middle" fill="#8a93aa" font-size="14">当前假设走不完 536 km</text>
       <text x="430" y="214" text-anchor="middle" fill="#a5aec2" font-size="11">请调整假设后再画 s-t 图</text>
     `;
     els.distanceChartCaption.textContent = '调整假设后，这里会重新画出路程—时间图。';
@@ -614,7 +614,7 @@ function renderBreakdown(result) {
     els.distanceBeforeLabel.textContent = '—';
     els.distanceAfterLabel.textContent = '—';
     els.formulaList.innerHTML = '<p class="formula-empty">当前假设不成立，暂时没有可用的算式。</p>';
-    els.formulaNote.textContent = '请先调整参数，让各段路程加起来等于 536 千米。';
+    els.formulaNote.textContent = '请先调整参数，让各段路程加起来等于 536 km。';
     return;
   }
 
@@ -647,7 +647,9 @@ function renderBreakdown(result) {
   const actualStep = state.actualRevealed
     ? {
         label: '与实际比较',
-        math: `${formatClock(result.arrivalRounded)} − ${formatClock(actual)} = ${Math.abs(error)} 分`,
+        math: `${formatClock(result.arrivalRounded)}（时刻）− ${formatClock(actual)}（时刻）= ${Math.abs(
+          error
+        )} 分钟`,
         note: `估计${actualDirection}${error === 0 ? '' : ` ${Math.abs(error)} 分钟`}`,
       }
     : {
@@ -660,50 +662,50 @@ function renderBreakdown(result) {
   const steps = [
     {
       label: '速度变化用时',
-      math: `0→350 km/h：t = ${TIME_REFERENCE_HOURS.toFixed(2)} h<br>0→${state.v1} km/h：t₁ = ${state.v1} ÷ 350 × 0.25 ≈ ${t1} h`,
-      note: '速度均匀变化，时间与速度变化量成正比',
+      math: `0 km/h → 350 km/h：t = 0.25 h<br>0 km/h → ${state.v1} km/h：t₁ = 0.25 h × (${state.v1} km/h ÷ 350 km/h) ≈ ${t1} h`,
+      note: '速度均匀变化，时间与速度变化量成正比；括号中的比值无量纲',
     },
     {
       label: '匀加速段',
-      math: `v平均 = (0 + ${state.v1}) ÷ 2 = ${state.v1 / 2} km/h<br>s₁ = v平均 × t₁ = ${state.v1 / 2} × ${t1} ≈ ${s1} km`,
-      note: '平均速度 × 时间，得到匀加速段路程',
+      math: `v平均 = (0 km/h + ${state.v1} km/h) ÷ 2 = ${state.v1 / 2} km/h<br>s₁ = ${state.v1 / 2} km/h × ${t1} h ≈ ${s1} km`,
+      note: '平均速度 × 时间；除以 2 的比例系数无单位',
     },
     {
       label: `${state.v1} km/h 匀速段`,
-      math: `t₂ = ${preSlow} − ${t1} = ${t2} h<br>s₂ = ${state.v1} × ${t2} ≈ ${s2} km`,
+      math: `t₂ = ${preSlow} h − ${t1} h = ${t2} h<br>s₂ = ${state.v1} km/h × ${t2} h ≈ ${s2} km`,
       note: `出站后 ${preSlow} h 开始减速`,
     },
     {
       label: '匀减速到限速',
-      math: `t₃ = (${state.v1} − ${state.v2}) ÷ 350 × 0.25 ≈ ${t3} h<br>v平均 = (${state.v1} + ${state.v2}) ÷ 2 = ${
+      math: `t₃ = 0.25 h × ((${state.v1} km/h − ${state.v2} km/h) ÷ 350 km/h) ≈ ${t3} h<br>v平均 = (${state.v1} km/h + ${state.v2} km/h) ÷ 2 = ${
         (state.v1 + state.v2) / 2
-      } km/h<br>s₃ = v平均 × t₃ ≈ ${s3} km`,
+      } km/h<br>s₃ = ${(state.v1 + state.v2) / 2} km/h × ${t3} h ≈ ${s3} km`,
       note: '初速与末速的平均，就是这一段的平均速度',
     },
     {
       label: '匀减速进站',
-      math: `t₄ = ${state.v2} ÷ 350 × 0.25 ≈ ${t4} h<br>v平均 = (${state.v2} + 0) ÷ 2 = ${
+      math: `t₄ = 0.25 h × (${state.v2} km/h ÷ 350 km/h) ≈ ${t4} h<br>v平均 = (${state.v2} km/h + 0 km/h) ÷ 2 = ${
         state.v2 / 2
-      } km/h<br>s₄ = v平均 × t₄ ≈ ${s4} km`,
-      note: '末速度为 0',
+      } km/h<br>s₄ = ${state.v2 / 2} km/h × ${t4} h ≈ ${s4} km`,
+      note: '末速度为 0 km/h',
     },
     {
       label: '限速段路程',
-      math: `s₅ = ${result.distance.toFixed(0)} − ${s1} − ${s2} − ${s3} − ${s4} = ${s5} km`,
+      math: `s₅ = ${result.distance.toFixed(0)} km − ${s1} km − ${s2} km − ${s3} km − ${s4} km = ${s5} km`,
       note: '总里程减去其余四段',
     },
     {
       label: '限速段用时',
-      math: `t₅ = s₅ ÷ ${state.v2} = ${s5} ÷ ${state.v2} ≈ ${t5} h`,
+      math: `t₅ = ${s5} km ÷ ${state.v2} km/h ≈ ${t5} h`,
       note: '由 v = s ÷ t 得 t = s ÷ v',
     },
     {
       label: '到站时刻与晚点',
-      math: `T = ${formatClock(result.departure)} + ${preSlow} + ${t3} + ${t5} + ${t4}<br>= ${formatClock(
+      math: `T = 13:45（时刻）+ ${preSlow} h + ${t3} h + ${t5} h + ${t4} h<br>= ${formatClock(
         result.arrival,
         true
-      )} ≈ ${formatClock(result.arrivalRounded)}<br>${formatClock(result.arrivalRounded)} − 15:26 = ${result.delayRounded} 分`,
-      note: '物理时间用 h 计算；到站时刻换算成钟表时间',
+      )}（时刻）≈ ${formatClock(result.arrivalRounded)}（时刻）<br>16:17（时刻）− 15:26（时刻）= ${result.delayRounded} 分钟`,
+      note: '钟表时刻用 h:mm 表示；物理时间用 h',
     },
     actualStep,
   ];
@@ -724,31 +726,31 @@ function renderBreakdown(result) {
     .join('');
 
   els.formulaNote.textContent =
-    '所有物理量统一用 km 和 h；速度用 km/h。匀变速段的路程都用“v平均 = (v初 + v末) ÷ 2，s = v平均 × t”计算。';
+    '每个物理量都带单位：路程 km、时间 h、速度 km/h；式中“÷2”是求平均的比例系数，无单位，钟表时刻用 h:mm 表示。';
 }
 
 function speedLabel(segment) {
   switch (segment.key) {
     case 'dwell':
-      return '0';
+      return '0 km/h';
     case 'accel':
-      return `0 → ${state.v1}`;
+      return `0 km/h → ${state.v1} km/h`;
     case 'cruise':
-      return String(state.v1);
+      return `${state.v1} km/h`;
     case 'decel':
-      return `${state.v1} → ${state.v2}`;
+      return `${state.v1} km/h → ${state.v2} km/h`;
     case 'plateau':
-      return String(state.v2);
+      return `${state.v2} km/h`;
     case 'brake':
-      return `${state.v2} → 0`;
+      return `${state.v2} km/h → 0 km/h`;
     default:
-      return String(Math.round(segment.speed));
+      return `${Math.round(segment.speed)} km/h`;
   }
 }
 
 function renderTable(result) {
   if (!result.valid) {
-    els.segmentTableBody.innerHTML = `<tr><td colspan="4">当前假设走不完 536 千米，无法列出分段表。</td></tr>`;
+    els.segmentTableBody.innerHTML = `<tr><td colspan="4">当前假设走不完 536 km，无法列出分段表。</td></tr>`;
     els.segmentTableFoot.innerHTML = '';
     return;
   }
@@ -764,8 +766,8 @@ function renderTable(result) {
             </span>
           </td>
           <td><span class="mono">${speedLabel(segment)}</span></td>
-          <td class="num">${segment.hours.toFixed(3)}</td>
-          <td class="num">${segment.km.toFixed(1)}</td>
+          <td class="num">${segment.hours.toFixed(3)} h</td>
+          <td class="num">${segment.km.toFixed(1)} km</td>
         </tr>
       `
     )
@@ -775,8 +777,8 @@ function renderTable(result) {
     <tr>
       <td>合计 <small class="mono">（含停站 ${formatHours(state.dwellHours, 3)}）</small></td>
       <td></td>
-      <td class="num">${result.totalFromActualHours.toFixed(3)}</td>
-      <td class="num">${result.distance.toFixed(1)}</td>
+      <td class="num">${result.totalFromActualHours.toFixed(3)} h</td>
+      <td class="num">${result.distance.toFixed(1)} km</td>
     </tr>
   `;
 }
@@ -791,7 +793,7 @@ function renderComparison(result) {
     els.cmpError.textContent = '—';
     els.cmpErrorCard.classList.remove('is-late');
     els.errorBanner.textContent = result.errors[0] || '请先调整假设，再比较误差。';
-    els.requiredSpeedText.textContent = '当前假设无法完成 536 千米，先调整参数。';
+    els.requiredSpeedText.textContent = '当前假设无法完成 536 km，先调整参数。';
     els.solveBtn.hidden = true;
     renderCompareChart(null);
     return;
@@ -943,7 +945,7 @@ function renderPrintSummary(result) {
   const target = $('#printSummary');
   if (!target) return;
   if (!result.valid) {
-    target.innerHTML = '<p>当前假设无法完成 536 千米，请调整参数后再打印。</p>';
+    target.innerHTML = '<p>当前假设无法完成 536 km，请调整参数后再打印。</p>';
     return;
   }
   const model = modelLabel();
@@ -969,9 +971,11 @@ function renderPrintSummary(result) {
       result.decelHours,
       3
     )}、制动 ${formatHours(result.brakeHours, 3)}。</p>
-    <p><strong>里程校验：</strong>降至限速前 ${result.beforeSlowDistance.toFixed(1)} + 降至限速后 ${(
-      result.distance - result.beforeSlowDistance
-    ).toFixed(1)} = ${result.distance.toFixed(1)} 千米。</p>
+    <p><strong>里程校验：</strong>降至限速前 ${result.beforeSlowDistance.toFixed(
+      1
+    )} km + 降至限速后 ${(result.distance - result.beforeSlowDistance).toFixed(
+      1
+    )} km = ${result.distance.toFixed(1)} km。</p>
     ${checkLine}
   `;
 }
@@ -979,7 +983,7 @@ function renderPrintSummary(result) {
 function renderReport(result) {
   if (!result.valid) {
     els.reportText.textContent =
-      '当前假设无法完成 536 千米，请先调整“减速前运行时间”“正常速度”或“限速后速度”，再生成汇报稿。';
+      '当前假设无法完成 536 km，请先调整“出站后多久开始减速”“正常速度”或“限速后速度”，再生成汇报稿。';
     els.promptArrival.textContent = '—';
     els.promptDelay.textContent = '—';
     els.promptThird.textContent = '“当前假设还不成立，先调整参数。”';

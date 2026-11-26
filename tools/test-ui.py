@@ -54,38 +54,40 @@ def main():
         """,
     )
     cdp.call("Emulation.setDeviceMetricsOverride", width=1440, height=1100, deviceScaleFactor=1, mobile=False)
-    cdp.call("Page.navigate", url="http://127.0.0.1:4173/?ui-test=uniform")
+    cdp.call("Page.navigate", url="http://127.0.0.1:4173/?ui-test=hours")
     time.sleep(2.5)
 
-    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:17", "default uniform arrival 16:17")
+    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:17", "default arrival 16:17")
     check(cdp.ev("document.querySelector('#resultDelay').textContent").endswith("51 分钟"), "default delay 51")
     check(cdp.ev("document.querySelectorAll('#segmentTableBody tr').length") == 6, "six uniform segments")
-    check("12.9" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "acceleration note 12.9")
-    check("23.3" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "acceleration note 23.3")
+    check("0.214" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "acceleration time 0.214 h")
+    check("0.25" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "reference time 0.25 h")
     check(cdp.ev("document.querySelector('#distanceChart').innerHTML.length") > 1000, "s-t chart drawn")
     check("斜率" in cdp.ev("document.querySelector('#distanceChartCaption').textContent"), "s-t caption slope")
     check(cdp.ev("document.querySelector('#legendDistanceActual').hidden") is True, "s-t actual legend hidden")
     check(cdp.ev("document.querySelectorAll('.calc-step').length") == 9, "nine calculation steps")
-    check("s₁ = ½ × 300" in cdp.ev("document.querySelector('#formulaList').textContent"), "acceleration distance formula")
+    check("300 ÷ 350 × 0.25" in cdp.ev("document.querySelector('#formulaList').textContent"), "speed-change time formula")
     check("16:16:31" in cdp.ev("document.querySelector('#formulaList').textContent"), "arrival formula")
 
     cdp.ev(
-        "(() => { const el=document.querySelector('#preSlow'); el.value=50; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
+        "(() => { const el=document.querySelector('#preSlowHours'); el.value=1.1; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
     )
     time.sleep(0.4)
-    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:24", "preSlow 50 -> 16:24")
-
-    cdp.ev(
-        "(() => { const el=document.querySelector('#v1'); el.value=350; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
-    )
-    time.sleep(0.4)
-    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:12", "v1 350 + preSlow 50 -> 16:12")
-    check("15.0" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "0->350 takes 15.0 min")
+    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:13", "preSlow 1.1 h -> 16:13")
 
     cdp.ev("document.querySelector('#resetBtn').click()")
     time.sleep(0.3)
     check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:17", "reset arrival")
 
+    cdp.ev(
+        "(() => { const el=document.querySelector('#v1'); el.value=350; el.dispatchEvent(new Event('input',{bubbles:true})); })()"
+    )
+    time.sleep(0.4)
+    check(cdp.ev("document.querySelector('#resultTime').textContent") == "16:02", "v1 350 -> 16:02")
+    check("0.250" in cdp.ev("document.querySelector('#calibrationNote').textContent"), "0->350 takes 0.250 h")
+
+    cdp.ev("document.querySelector('#resetBtn').click()")
+    time.sleep(0.3)
     cdp.ev("document.querySelector('#revealBtn').click()")
     time.sleep(0.5)
     check(cdp.ev("document.querySelector('#actualPanel').hidden === false"), "actual panel revealed")

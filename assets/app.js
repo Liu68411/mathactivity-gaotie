@@ -1,16 +1,15 @@
 import {
-  ACCEL_REFERENCE_SPEED,
-  ACCEL_REFERENCE_MINUTES,
-  UNIFORM_ACCELERATION,
+  SPEED_REFERENCE,
+  TIME_REFERENCE_HOURS,
   DEFAULTS,
   computeEstimate,
   buildDistanceTimeSeries,
   estimateRange,
   solveLimitedSpeed,
   formatClock,
-  formatDuration,
+  formatHours,
   formatKm,
-} from './model.js?v=20261122-5';
+} from './model.js?v=20261122-6';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -103,10 +102,10 @@ function getInput(key) {
 function setOutput(key, value) {
   const output = $(`#${key}Out`);
   if (!output) return;
-  if (key === 'dwell' || key === 'preSlow') {
-    output.textContent = `${value} 分钟`;
+  if (key === 'dwellHours' || key === 'preSlowHours') {
+    output.textContent = `${Number(value).toFixed(2)} h`;
   } else if (key === 'v1' || key === 'v2') {
-    output.textContent = `${value} 千米/时`;
+    output.textContent = `${value} km/h`;
   }
 }
 
@@ -181,48 +180,54 @@ function renderResult(result, range) {
     [els.metaDeparture, els.metaSlow, els.metaRuntime, els.metaAvg].forEach((el) => {
       el.textContent = '—';
     });
-    els.rangeNote.textContent = '先让各段路程加起来不超过 536 千米。';
+    els.rangeNote.textContent = '先让各段路程加起来不超过 536 km。';
     if (els.calibrationNote) {
-      els.calibrationNote.textContent = `加速度标定：0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟。`;
+      els.calibrationNote.textContent = `速度变化标定：0→${SPEED_REFERENCE} km/h 用 ${formatHours(
+        TIME_REFERENCE_HOURS,
+        2
+      )}。`;
     }
     return;
   }
 
   els.resultTime.textContent = formatClock(result.arrivalRounded);
   els.resultDelay.textContent = delayText(result.delayRounded);
-  els.resultSub.textContent = `按 ${formatClock(result.departure)} 发车，先匀加速 ${result.accelMinutes.toFixed(
-    1
-  )} 分钟，${formatClock(result.slowStart)} 开始减速。`;
+  els.resultSub.textContent = `按 ${formatClock(result.departure)} 发车，先匀加速 ${result.accelHours.toFixed(
+    3
+  )} h，${formatClock(result.slowStart)} 开始减速。`;
   els.metaDeparture.textContent = formatClock(result.departure);
   els.metaSlow.textContent = formatClock(result.slowStart);
-  els.metaRuntime.textContent = formatDuration(result.totalFromActual);
-  els.metaAvg.textContent = `${Math.round(result.averageSpeed)} 千米/时`;
+  els.metaRuntime.textContent = formatHours(result.totalFromActualHours, 3);
+  els.metaAvg.textContent = `${Math.round(result.averageSpeed)} km/h`;
 
   if (els.calibrationNote) {
-    els.calibrationNote.textContent = `匀变速：0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟，a≈${UNIFORM_ACCELERATION.toFixed(
-      1
-    )} 千米/时/分；本区间 0→${state.v1} 约 ${result.accelMinutes.toFixed(1)} 分，${state.v1}→${state.v2} 约 ${result.decelMinutes.toFixed(
-      1
-    )} 分，${state.v2}→0 约 ${result.brakeMinutes.toFixed(1)} 分。`;
+    els.calibrationNote.textContent = `速度均匀变化：0→${SPEED_REFERENCE} km/h 用 ${formatHours(
+      TIME_REFERENCE_HOURS,
+      2
+    )}；本区间加速 ${result.accelHours.toFixed(3)} h、减速 ${result.decelHours.toFixed(
+      3
+    )} h、制动 ${result.brakeHours.toFixed(3)} h。`;
   }
   if (els.chipAccelLabel) {
     els.chipAccelLabel.textContent = `0→${state.v1}`;
-    els.chipAccelTime.textContent = `${result.accelMinutes.toFixed(1)} 分`;
+    els.chipAccelTime.textContent = formatHours(result.accelHours, 3);
     els.chipDecelLabel.textContent = `${state.v1}→${state.v2}`;
-    els.chipDecelTime.textContent = `${result.decelMinutes.toFixed(1)} 分`;
+    els.chipDecelTime.textContent = formatHours(result.decelHours, 3);
     els.chipBrakeLabel.textContent = `${state.v2}→0`;
-    els.chipBrakeTime.textContent = `${result.brakeMinutes.toFixed(1)} 分`;
+    els.chipBrakeTime.textContent = formatHours(result.brakeHours, 3);
   }
 
   if (range) {
     if (range.min === range.max) {
-      els.rangeNote.textContent = `在 ${range.lowInput}–${range.highInput} 分钟的假设范围内，估计仍为 ${formatClock(
-        range.min
-      )}。`;
+      els.rangeNote.textContent = `在 ${formatHours(range.lowInput, 2)}–${formatHours(
+        range.highInput,
+        2
+      )} 的假设范围内，估计仍为 ${formatClock(range.min)}。`;
     } else {
-      els.rangeNote.textContent = `若“1 小时”在 ${range.lowInput}–${range.highInput} 分钟之间摆动，估计落在 ${formatClock(
-        range.min
-      )}–${formatClock(range.max)}。`;
+      els.rangeNote.textContent = `若“1 小时”用 ${formatHours(range.lowInput, 2)}–${formatHours(
+        range.highInput,
+        2
+      )} 的假设，估计落在 ${formatClock(range.min)}–${formatClock(range.max)}。`;
     }
   } else {
     els.rangeNote.textContent = '拖动“出站后多久开始减速”，看看估计对这条假设有多敏感。';
@@ -239,7 +244,10 @@ function renderAnswer(result) {
 
   els.bigArrival.textContent = formatClock(result.arrivalRounded);
   els.bigDelay.textContent = String(Math.abs(result.delayRounded));
-  els.answerSub.textContent = `这是按停站 ${state.dwell} 分钟、匀加速到 ${state.v1} 千米/时、出站 ${state.preSlow} 分钟后匀减速到 ${state.v2} 千米/时得到的估计。`;
+  els.answerSub.textContent = `这是按停站 ${formatHours(state.dwellHours, 2)}、匀加速到 ${state.v1} km/h、出站 ${formatHours(
+    state.preSlowHours,
+    2
+  )}后匀减速到 ${state.v2} km/h 得到的估计。`;
 }
 
 function svgText(x, y, text, className, extra = '') {
@@ -395,7 +403,7 @@ function renderSpeedChart(result) {
     ${grid}
     <line x1="${L}" y1="${T + plotH}" x2="${L + plotW}" y2="${T + plotH}" class="chart-axis"/>
     <line x1="${L}" y1="${T}" x2="${L}" y2="${T + plotH}" class="chart-axis"/>
-    ${svgText(L - 46, 18, '速度 (千米/时)', 'chart-axis-title', 'text-anchor="start"')}
+    ${svgText(L - 46, 18, '速度 (km/h)', 'chart-axis-title', 'text-anchor="start"')}
     ${svgText(L + plotW, H - 6, '时刻', 'chart-axis-title', 'text-anchor="end"')}
     ${plateauBand}
     <path d="${areaPath}" class="chart-area"/>
@@ -491,7 +499,7 @@ function renderDistanceChart(result) {
   markers += `<line x1="${L}" y1="${y(536).toFixed(1)}" x2="${L + plotW}" y2="${y(536).toFixed(
     1
   )}" class="chart-line--target"/>`;
-  markers += svgText(L + 8, y(536) - 7, '郑州东 s = 536 千米', 'chart-annotation', 'text-anchor="start"');
+  markers += svgText(L + 8, y(536) - 7, '郑州东 s = 536 km', 'chart-annotation', 'text-anchor="start"');
 
   markers += `<line x1="${planX.toFixed(1)}" y1="${T}" x2="${planX.toFixed(1)}" y2="${T + plotH}" class="chart-line chart-line--plan"/>`;
   markers += svgText(
@@ -553,7 +561,7 @@ function renderDistanceChart(result) {
     ${svgText(
       x(dwellMid) - 6,
       y(0) - 10,
-      `停站 ${state.dwell} 分`,
+      `停站 ${formatHours(state.dwellHours, 2)}`,
       'chart-annotation',
       'text-anchor="end"'
     )}
@@ -561,14 +569,14 @@ function renderDistanceChart(result) {
     ${svgText(
       x(cruiseMid),
       y(result.accelDistance + result.cruiseDistance / 2) - 14,
-      `${state.v1} 千米/时`,
+      `${state.v1} km/h`,
       'chart-annotation',
       'text-anchor="middle"'
     )}
     ${svgText(
       x(plateauMid),
       y(result.beforeSlowDistance + result.plateauDistance / 2) - 14,
-      `${state.v2} 千米/时`,
+      `${state.v2} km/h`,
       'chart-annotation',
       'text-anchor="middle"'
     )}
@@ -579,7 +587,7 @@ function renderDistanceChart(result) {
     ${grid}
     <line x1="${L}" y1="${T + plotH}" x2="${L + plotW}" y2="${T + plotH}" class="chart-axis"/>
     <line x1="${L}" y1="${T}" x2="${L}" y2="${T + plotH}" class="chart-axis"/>
-    ${svgText(10, 18, '路程 s (千米)', 'chart-axis-title', 'text-anchor="start"')}
+    ${svgText(10, 18, '路程 s (km)', 'chart-axis-title', 'text-anchor="start"')}
     ${svgText(L + plotW, H - 6, '时刻', 'chart-axis-title', 'text-anchor="end"')}
     <path d="${toPath(dwellPoints)}" class="chart-line--dwell"/>
     <path d="${toPath(motionPoints)}" class="chart-line--distance"/>
@@ -621,17 +629,17 @@ function renderBreakdown(result) {
   els.distanceAfterLabel.textContent = formatKm(after);
   els.distanceTag.textContent = modelLabel();
 
-  const a = UNIFORM_ACCELERATION.toFixed(1);
-  const t1 = result.accelMinutes.toFixed(2);
+  const t1 = result.accelHours.toFixed(4);
   const s1 = result.accelDistance.toFixed(1);
-  const t2 = result.cruiseMinutes.toFixed(2);
+  const t2 = result.cruiseHours.toFixed(4);
   const s2 = result.cruiseDistance.toFixed(1);
-  const t3 = result.decelMinutes.toFixed(2);
+  const t3 = result.decelHours.toFixed(4);
   const s3 = result.decelDistance.toFixed(1);
-  const t4 = result.brakeMinutes.toFixed(2);
+  const t4 = result.brakeHours.toFixed(4);
   const s4 = result.brakeDistance.toFixed(1);
   const s5 = result.plateauDistance.toFixed(1);
-  const t5 = result.plateauMinutes.toFixed(2);
+  const t5 = result.plateauHours.toFixed(4);
+  const preSlow = state.preSlowHours.toFixed(3);
 
   const actual = state.actualZhengzhouArrival;
   const error = result.arrivalRounded - actual;
@@ -651,47 +659,51 @@ function renderBreakdown(result) {
 
   const steps = [
     {
-      label: '加速度',
-      math: `a = ${ACCEL_REFERENCE_SPEED} ÷ ${ACCEL_REFERENCE_MINUTES} = ${a} 千米/时/分`,
-      note: '15 分钟从 0 加速到 350 千米/时',
+      label: '速度变化用时',
+      math: `0→350 km/h：t = ${TIME_REFERENCE_HOURS.toFixed(2)} h<br>0→${state.v1} km/h：t₁ = ${state.v1} ÷ 350 × 0.25 ≈ ${t1} h`,
+      note: '速度均匀变化，时间与速度变化量成正比',
     },
     {
       label: '匀加速段',
-      math: `t₁ = ${state.v1} ÷ ${a} ≈ ${t1} 分<br>s₁ = ½ × ${state.v1} × ${t1} ÷ 60 ≈ ${s1} 千米`,
-      note: '平均速度 × 时间；½ 来自匀加速',
+      math: `v平均 = (0 + ${state.v1}) ÷ 2 = ${state.v1 / 2} km/h<br>s₁ = v平均 × t₁ = ${state.v1 / 2} × ${t1} ≈ ${s1} km`,
+      note: '平均速度 × 时间，得到匀加速段路程',
     },
     {
-      label: `${state.v1} 千米/时 匀速段`,
-      math: `t₂ = ${state.preSlow} − ${t1} = ${t2} 分<br>s₂ = ${state.v1} × ${t2} ÷ 60 ≈ ${s2} 千米`,
-      note: `出站后 ${state.preSlow} 分钟开始减速`,
+      label: `${state.v1} km/h 匀速段`,
+      math: `t₂ = ${preSlow} − ${t1} = ${t2} h<br>s₂ = ${state.v1} × ${t2} ≈ ${s2} km`,
+      note: `出站后 ${preSlow} h 开始减速`,
     },
     {
       label: '匀减速到限速',
-      math: `t₃ = (${state.v1} − ${state.v2}) ÷ ${a} ≈ ${t3} 分<br>s₃ = (${state.v1} + ${state.v2}) ÷ 2 × ${t3} ÷ 60 ≈ ${s3} 千米`,
-      note: '平均速度 = 初速与末速的平均',
+      math: `t₃ = (${state.v1} − ${state.v2}) ÷ 350 × 0.25 ≈ ${t3} h<br>v平均 = (${state.v1} + ${state.v2}) ÷ 2 = ${
+        (state.v1 + state.v2) / 2
+      } km/h<br>s₃ = v平均 × t₃ ≈ ${s3} km`,
+      note: '初速与末速的平均，就是这一段的平均速度',
     },
     {
       label: '匀减速进站',
-      math: `t₄ = ${state.v2} ÷ ${a} ≈ ${t4} 分<br>s₄ = ${state.v2} ÷ 2 × ${t4} ÷ 60 ≈ ${s4} 千米`,
-      note: `末速度为 0，平均速度是 ${state.v2} 的一半`,
+      math: `t₄ = ${state.v2} ÷ 350 × 0.25 ≈ ${t4} h<br>v平均 = (${state.v2} + 0) ÷ 2 = ${
+        state.v2 / 2
+      } km/h<br>s₄ = v平均 × t₄ ≈ ${s4} km`,
+      note: '末速度为 0',
     },
     {
       label: '限速段路程',
-      math: `s₅ = ${result.distance.toFixed(0)} − ${s1} − ${s2} − ${s3} − ${s4} = ${s5} 千米`,
-      note: '用总里程减去其余各段',
+      math: `s₅ = ${result.distance.toFixed(0)} − ${s1} − ${s2} − ${s3} − ${s4} = ${s5} km`,
+      note: '总里程减去其余四段',
     },
     {
       label: '限速段用时',
-      math: `t₅ = ${s5} ÷ ${state.v2} × 60 ≈ ${t5} 分`,
-      note: 's = v t，所以 t = s ÷ v',
+      math: `t₅ = s₅ ÷ ${state.v2} = ${s5} ÷ ${state.v2} ≈ ${t5} h`,
+      note: '由 v = s ÷ t 得 t = s ÷ v',
     },
     {
       label: '到站时刻与晚点',
-      math: `T = ${formatClock(result.departure)} + ${state.preSlow} + ${t3} + ${t5} + ${t4}<br>= ${formatClock(
+      math: `T = ${formatClock(result.departure)} + ${preSlow} + ${t3} + ${t5} + ${t4}<br>= ${formatClock(
         result.arrival,
         true
       )} ≈ ${formatClock(result.arrivalRounded)}<br>${formatClock(result.arrivalRounded)} − 15:26 = ${result.delayRounded} 分`,
-      note: '最后把到站时刻向上取整到分钟',
+      note: '物理时间用 h 计算；到站时刻换算成钟表时间',
     },
     actualStep,
   ];
@@ -712,7 +724,7 @@ function renderBreakdown(result) {
     .join('');
 
   els.formulaNote.textContent =
-    '中间时间保留 2 位小数，路程和最终结果保留 1 位小数；到站时刻向上取整到分钟。所有路程都用“平均速度 × 时间 ÷ 60”计算。';
+    '所有物理量统一用 km 和 h；速度用 km/h。匀变速段的路程都用“v平均 = (v初 + v末) ÷ 2，s = v平均 × t”计算。';
 }
 
 function speedLabel(segment) {
@@ -752,7 +764,7 @@ function renderTable(result) {
             </span>
           </td>
           <td><span class="mono">${speedLabel(segment)}</span></td>
-          <td class="num">${segment.minutes.toFixed(1)}</td>
+          <td class="num">${segment.hours.toFixed(3)}</td>
           <td class="num">${segment.km.toFixed(1)}</td>
         </tr>
       `
@@ -761,9 +773,9 @@ function renderTable(result) {
 
   els.segmentTableFoot.innerHTML = `
     <tr>
-      <td>合计 <small class="mono">（含停站 ${state.dwell} 分）</small></td>
+      <td>合计 <small class="mono">（含停站 ${formatHours(state.dwellHours, 3)}）</small></td>
       <td></td>
-      <td class="num">${result.totalFromActual.toFixed(1)}</td>
+      <td class="num">${result.totalFromActualHours.toFixed(3)}</td>
       <td class="num">${result.distance.toFixed(1)}</td>
     </tr>
   `;
@@ -808,7 +820,7 @@ function renderComparison(result) {
     const solvedRounded = Math.ceil(solved - 1e-9);
     const capped = clamp(solvedRounded, 100, 240);
     const capNote = capped !== solvedRounded ? `（滑块上限 240，实际需要约 ${solvedRounded}）` : '';
-    els.requiredSpeedText.textContent = `如果其余假设不变，限速后平均速度约需 ${capped} 千米/时，才能 ${formatClock(
+    els.requiredSpeedText.textContent = `如果其余假设不变，限速后平均速度约需 ${capped} km/h，才能 ${formatClock(
       actual
     )} 到站${capNote}。`;
     els.solveBtn.textContent = `把限速后速度改为 ${capped}`;
@@ -946,12 +958,17 @@ function renderPrintSummary(result) {
   target.innerHTML = `
     <h3>本组假设与第一版估计</h3>
     <p><strong>估计到站：</strong>${formatClock(result.arrivalRounded)}，${delayText(result.delayRounded)}。</p>
-    <p><strong>假设：</strong>武汉站停站 ${state.dwell} 分钟；出站 ${state.preSlow} 分钟后开始减速；减速前 ${state.v1} 千米/时；限速后 ${state.v2} 千米/时；${model}。</p>
-    <p><strong>匀变速：</strong>0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟，a≈${UNIFORM_ACCELERATION.toFixed(
-      1
-    )} 千米/时/分；本区间加速 ${result.accelMinutes.toFixed(1)} 分、减速 ${result.decelMinutes.toFixed(
-      1
-    )} 分、制动 ${result.brakeMinutes.toFixed(1)} 分。</p>
+    <p><strong>假设：</strong>武汉站停站 ${formatHours(state.dwellHours, 2)}；出站 ${formatHours(
+      state.preSlowHours,
+      2
+    )}后开始减速；正常速度 ${state.v1} km/h；限速后 ${state.v2} km/h；${model}。</p>
+    <p><strong>速度变化：</strong>0→350 km/h 用 ${formatHours(
+      TIME_REFERENCE_HOURS,
+      2
+    )}；本区间加速 ${formatHours(result.accelHours, 3)}、减速 ${formatHours(
+      result.decelHours,
+      3
+    )}、制动 ${formatHours(result.brakeHours, 3)}。</p>
     <p><strong>里程校验：</strong>降至限速前 ${result.beforeSlowDistance.toFixed(1)} + 降至限速后 ${(
       result.distance - result.beforeSlowDistance
     ).toFixed(1)} = ${result.distance.toFixed(1)} 千米。</p>
@@ -971,7 +988,13 @@ function renderReport(result) {
 
   const modelDesc = '把全程分成“匀加速启动、正常速度匀速、匀减速至限速、限速运行、匀减速进站”几段';
 
-  let text = `我们按“武汉站停站 ${state.dwell} 分钟、出站 ${state.preSlow} 分钟后开始减速、减速前 ${state.v1} 千米/时、限速后 ${state.v2} 千米/时，且 0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟的同一加速度”，${modelDesc}来估算。G80 约在 ${formatClock(
+  let text = `我们按“武汉站停站 ${formatHours(state.dwellHours, 2)}、出站 ${formatHours(
+    state.preSlowHours,
+    2
+  )}后开始减速、正常速度 ${state.v1} km/h、限速后 ${state.v2} km/h，且 0→350 km/h 用 ${formatHours(
+    TIME_REFERENCE_HOURS,
+    2
+  )}的同一速度变化规律”，${modelDesc}来估算。G80 约在 ${formatClock(
     result.arrivalRounded
   )} 到达郑州东，比计划 15:26 ${result.delayRounded >= 0 ? '晚' : '早'} ${Math.abs(
     result.delayRounded
@@ -984,7 +1007,7 @@ function renderReport(result) {
     text += `检验资料显示实际 ${formatClock(
       state.actualZhengzhouArrival
     )} 到站、晚点 47 分钟，我们的估计${direction}${error === 0 ? '' : ` ${absError} 分钟`}。`;
-    text += `最值得再查的假设是“限速后能否一直保持 ${state.v2} 千米/时”，因为显示屏上的 180 只是某一时段的读数，实际速度可能更低或持续更久。`;
+    text += `最值得再查的假设是“限速后能否一直保持 ${state.v2} km/h”，因为显示屏上的 180 只是某一时段的读数，实际速度可能更低或持续更久。`;
   } else {
     text += '拿到实际记录后，还要比较估计误差，并解释哪一条假设最可能把结果推早或推晚。';
   }
@@ -1248,7 +1271,7 @@ function bindEvents() {
       setOutput('v2', state.v2);
     }
     renderAll();
-    showToast(`已把限速后速度改为 ${state.v2} 千米/时，估计结果已更新。`);
+    showToast(`已把限速后速度改为 ${state.v2} km/h，估计结果已更新。`);
   });
 
   $$('.print-trigger').forEach((button) => {

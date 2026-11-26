@@ -2,30 +2,32 @@
  * 专题三 · 雾雪限速后 G80 次会几点到站
  * 纯计算模型：不依赖 DOM，便于单元测试。
  *
- * 时间统一用“当天 0 点起的分钟数”表示，速度单位 km/h，里程单位 km。
+ * 物理量的单位统一为：
+ *   路程 s：千米（km）
+ *   时间 t：小时（h）
+ *   速度 v：千米/时（km/h）
  *
- * 运动模型：
- *   停站 → 匀加速到正常速度 → 匀速 → 匀减速到限速 → 限速匀速 → 匀减速进站
- * 所有加速、减速、制动都使用同一个加速度：
- *   15 分钟从 0 加速到 350 km/h
- *   a = 350 ÷ 15 ≈ 23.333 km/h/min
+ * 速度均匀变化时，只用两个基础关系：
+ *   v平均 = (v初 + v末) / 2
+ *   v = s / t
+ *
+ * 速度变化用时按“0→350 km/h 用 0.25 h”的同一规律等比例换算。
  */
 
-export const ACCEL_REFERENCE_SPEED = 350; // km/h
-export const ACCEL_REFERENCE_MINUTES = 15; // min
-export const UNIFORM_ACCELERATION = ACCEL_REFERENCE_SPEED / ACCEL_REFERENCE_MINUTES; // km/h per min
+export const SPEED_REFERENCE = 350; // km/h
+export const TIME_REFERENCE_HOURS = 0.25; // h（15 分钟）
 
 export const DEFAULTS = Object.freeze({
-  plannedWuhanArrival: 13 * 60 + 38, // 13:38
+  plannedWuhanArrival: 13 * 60 + 38, // 13:38，仅用于钟表时刻
   plannedWuhanDeparture: 13 * 60 + 41, // 13:41
   actualWuhanArrival: 13 * 60 + 42, // 13:42
   plannedZhengzhouArrival: 15 * 60 + 26, // 15:26
   actualZhengzhouArrival: 16 * 60 + 13, // 16:13（检验资料）
-  distance: 536,
-  dwell: 3,
-  preSlow: 60,
-  v1: 300,
-  v2: 180,
+  distance: 536, // km
+  dwellHours: 0.05, // 3 分钟 = 0.05 h
+  preSlowHours: 1.0, // 出站后 1.00 h 开始减速
+  v1: 300, // km/h
+  v2: 180, // km/h
 });
 
 const EPS = 1e-9;
@@ -48,6 +50,11 @@ export function formatClock(minutes, withSeconds = false) {
   return withSeconds ? `${base}:${String(ss).padStart(2, '0')}` : base;
 }
 
+export function formatHours(hours, digits = 3) {
+  if (!Number.isFinite(hours)) return '—';
+  return `${hours.toFixed(digits)} h`;
+}
+
 export function formatDuration(minutes) {
   if (!Number.isFinite(minutes)) return '—';
   const total = Math.round(minutes);
@@ -64,80 +71,92 @@ export function formatKm(km) {
 
 export function formatSpeed(speed) {
   if (!Number.isFinite(speed)) return '—';
-  return `${Math.round(speed)} 千米/时`;
+  return `${Math.round(speed)} km/h`;
+}
+
+/**
+ * 速度均匀变化时，速度变化量与时间成正比。
+ * 用“0→350 km/h 用 0.25 h”作为标定，换算任意速度变化所需时间。
+ */
+export function timeForSpeedChange(fromSpeed, toSpeed) {
+  return (Math.abs(toSpeed - fromSpeed) / SPEED_REFERENCE) * TIME_REFERENCE_HOURS;
 }
 
 /**
  * 核心估算。
  *
- * 加速、减速、制动段都按匀变速处理，用平均速度乘时间求路程。
+ * 运动过程：
+ *   停站 → 匀加速到正常速度 → 匀速 → 匀减速到限速 → 限速匀速 → 匀减速进站
+ * 每一段的速度变化都按同一规律用时，路程用平均速度乘时间。
  */
 export function computeEstimate(input) {
   const s = { ...DEFAULTS, ...input };
   const errors = [];
 
   const distance = Number(s.distance);
-  const dwell = Number(s.dwell);
-  const preSlow = Number(s.preSlow);
+  const dwellHours = Number(s.dwellHours);
+  const preSlowHours = Number(s.preSlowHours);
   const v1 = Number(s.v1);
   const v2 = Number(s.v2);
-  const acceleration = UNIFORM_ACCELERATION;
 
-  if (![distance, dwell, preSlow, v1, v2].every(Number.isFinite)) {
+  if (![distance, dwellHours, preSlowHours, v1, v2].every(Number.isFinite)) {
     errors.push('输入中有无法识别的数值。');
   }
   if (distance <= 0) errors.push('里程必须大于 0。');
   if (v1 <= 0 || v2 <= 0) errors.push('速度必须大于 0。');
   if (v2 > v1 + EPS) errors.push('限速后的速度不能高于正常速度。');
-  if (preSlow <= 0) errors.push('“约 1 小时后减速”的用时必须大于 0。');
+  if (dwellHours < 0) errors.push('停站时间不能为负数。');
+  if (preSlowHours <= 0) errors.push('“出站后多久开始减速”必须大于 0。');
 
-  const departure = Number(s.actualWuhanArrival) + dwell;
-  const slowStart = departure + preSlow;
+  const departureMinutes = Number(s.actualWuhanArrival) + dwellHours * 60;
+  const departureHours = departureMinutes / 60;
+  const slowStartMinutes = departureMinutes + preSlowHours * 60;
 
-  const accelMinutes = v1 / acceleration;
-  const decelMinutes = Math.max(0, (v1 - v2) / acceleration);
-  const brakeMinutes = v2 / acceleration;
-  const cruiseMinutes = preSlow - accelMinutes;
+  const accelHours = timeForSpeedChange(0, v1);
+  const decelHours = timeForSpeedChange(v1, v2);
+  const brakeHours = timeForSpeedChange(v2, 0);
+  const cruiseHours = preSlowHours - accelHours;
 
-  const accelDistance = (v1 / 2) * (accelMinutes / 60);
-  const cruiseDistance = (v1 * cruiseMinutes) / 60;
-  const decelDistance = ((v1 + v2) / 2) * (decelMinutes / 60);
-  const brakeDistance = (v2 / 2) * (brakeMinutes / 60);
-
-  if (cruiseMinutes < -EPS) {
+  if (cruiseHours < -EPS) {
     errors.push(
-      `按 0→${ACCEL_REFERENCE_SPEED} 千米/时用 ${ACCEL_REFERENCE_MINUTES} 分钟的加速度，加速到 ${Math.round(
-        v1
-      )} 千米/时就要 ${accelMinutes.toFixed(1)} 分钟，已经超过“出站 ${preSlow} 分钟后减速”。`
+      `0→${v1} km/h 需要 ${accelHours.toFixed(3)} h，已经超过“出站 ${preSlowHours.toFixed(
+        2
+      )} h 后开始减速”。`
     );
   }
 
+  const accelDistance = ((0 + v1) / 2) * accelHours;
+  const cruiseDistance = v1 * cruiseHours;
+  const decelDistance = ((v1 + v2) / 2) * decelHours;
+  const brakeDistance = ((v2 + 0) / 2) * brakeHours;
   const beforeSlowDistance = accelDistance + cruiseDistance + decelDistance;
   const plateauDistance = distance - beforeSlowDistance - brakeDistance;
 
   if (plateauDistance < -EPS) {
     errors.push(
-      `按这些假设，还没进入限速段就已经走完 ${distance} 千米了。请缩短减速前用时或降低正常速度。`
+      `按这些假设，还没进入限速段就已经走完 ${distance} km 了。请缩短“出站后多久开始减速”或降低正常速度。`
     );
   }
 
   const valid = errors.length === 0 && plateauDistance >= -EPS;
-  const safeCruiseMinutes = Math.max(0, cruiseMinutes);
+  const safeCruiseHours = Math.max(0, cruiseHours);
   const safePlateauDistance = Math.max(0, plateauDistance);
-  const plateauMinutes = (safePlateauDistance / v2) * 60;
-  const slowEnd = slowStart + decelMinutes;
-  const arrival = slowEnd + plateauMinutes + brakeMinutes;
-  const runningMinutes = arrival - departure;
-  const delay = arrival - Number(s.plannedZhengzhouArrival);
-  const totalFromActual = arrival - Number(s.actualWuhanArrival);
-  const averageSpeed = runningMinutes > 0 ? distance / (runningMinutes / 60) : NaN;
+  const plateauHours = safePlateauDistance / v2;
+  const slowEndMinutes = slowStartMinutes + decelHours * 60;
+  const arrivalHours =
+    departureHours + preSlowHours + decelHours + plateauHours + brakeHours;
+  const arrivalMinutes = arrivalHours * 60;
+  const runningHours = arrivalHours - departureHours;
+  const totalFromActualHours = arrivalHours - Number(s.actualWuhanArrival) / 60;
+  const delay = arrivalMinutes - Number(s.plannedZhengzhouArrival);
+  const averageSpeed = runningHours > 0 ? distance / runningHours : NaN;
 
   const segments = [
     {
       key: 'dwell',
       label: '武汉站停站',
       detail: '乘客上下车',
-      minutes: dwell,
+      hours: dwellHours,
       km: 0,
       speed: 0,
       tone: 'stop',
@@ -145,32 +164,32 @@ export function computeEstimate(input) {
     {
       key: 'accel',
       label: '匀加速启动',
-      detail: `0 → ${Math.round(v1)} 千米/时，a ≈ ${acceleration.toFixed(1)} 千米/时/分`,
-      minutes: accelMinutes,
+      detail: `0 → ${Math.round(v1)} km/h`,
+      hours: accelHours,
       km: accelDistance,
       speed: v1 / 2,
       tone: 'accel',
     },
   ];
 
-  if (safeCruiseMinutes > EPS) {
+  if (safeCruiseHours > EPS) {
     segments.push({
       key: 'cruise',
-      label: `${Math.round(v1)} 千米/时 匀速`,
+      label: `${Math.round(v1)} km/h 匀速`,
       detail: '减速前的正常运营',
-      minutes: safeCruiseMinutes,
+      hours: safeCruiseHours,
       km: cruiseDistance,
       speed: v1,
       tone: 'cruise',
     });
   }
 
-  if (decelMinutes > EPS) {
+  if (decelHours > EPS) {
     segments.push({
       key: 'decel',
       label: '匀减速至限速',
-      detail: `${Math.round(v1)} → ${Math.round(v2)} 千米/时`,
-      minutes: decelMinutes,
+      detail: `${Math.round(v1)} → ${Math.round(v2)} km/h`,
+      hours: decelHours,
       km: decelDistance,
       speed: (v1 + v2) / 2,
       tone: 'decel',
@@ -179,9 +198,9 @@ export function computeEstimate(input) {
 
   segments.push({
     key: 'plateau',
-    label: `${Math.round(v2)} 千米/时 限速运行`,
+    label: `${Math.round(v2)} km/h 限速运行`,
     detail: '车厢显示屏一度显示的速度',
-    minutes: plateauMinutes,
+    hours: plateauHours,
     km: safePlateauDistance,
     speed: v2,
     tone: 'plateau',
@@ -190,14 +209,14 @@ export function computeEstimate(input) {
   segments.push({
     key: 'brake',
     label: '匀减速进站',
-    detail: `${Math.round(v2)} → 0 千米/时`,
-    minutes: brakeMinutes,
+    detail: `${Math.round(v2)} → 0 km/h`,
+    hours: brakeHours,
     km: brakeDistance,
     speed: v2 / 2,
     tone: 'brake',
   });
 
-  const arrivalRounded = roundToMinuteUp(arrival);
+  const arrivalRounded = roundToMinuteUp(arrivalMinutes);
   const delayRounded = arrivalRounded - Number(s.plannedZhengzhouArrival);
 
   return {
@@ -205,36 +224,45 @@ export function computeEstimate(input) {
     valid,
     errors,
     distance,
-    acceleration,
-    departure,
-    slowStart,
-    slowEnd,
-    arrival,
+    departure: departureMinutes,
+    departureHours,
+    slowStart: slowStartMinutes,
+    slowStartHours: slowStartMinutes / 60,
+    slowEnd: slowEndMinutes,
+    slowEndHours: slowEndMinutes / 60,
+    arrival: arrivalMinutes,
+    arrivalHours,
     arrivalRounded,
     delay,
     delayRounded,
-    totalFromActual,
-    runningMinutes,
+    totalFromActual: totalFromActualHours * 60,
+    totalFromActualHours,
+    runningHours,
     averageSpeed,
     segments,
-    accelMinutes,
-    decelMinutes,
-    brakeMinutes,
-    cruiseMinutes: safeCruiseMinutes,
+    accelHours,
+    decelHours,
+    brakeHours,
+    cruiseHours: safeCruiseHours,
+    plateauHours,
+    accelMinutes: accelHours * 60,
+    decelMinutes: decelHours * 60,
+    brakeMinutes: brakeHours * 60,
+    cruiseMinutes: safeCruiseHours * 60,
+    plateauMinutes: plateauHours * 60,
     accelDistance,
     cruiseDistance,
     decelDistance,
     brakeDistance,
     beforeSlowDistance,
     plateauDistance: safePlateauDistance,
-    plateauMinutes,
-    dwell,
+    dwellHours,
   };
 }
 
 /**
  * 生成 s-t 图（累计路程—时间）的采样点。
- * 停站在 s=0 处水平；加速、减速、制动按匀变速曲线采样。
+ * 停站在 s=0 处水平；变速段用平均速度逐段累加路程。
  */
 export function buildDistanceTimeSeries(input) {
   const result = computeEstimate(input);
@@ -249,7 +277,6 @@ export function buildDistanceTimeSeries(input) {
     }
   };
 
-  const a = result.acceleration;
   const v1 = Number(result.input.v1);
   const v2 = Number(result.input.v2);
   const samples = 24;
@@ -258,24 +285,27 @@ export function buildDistanceTimeSeries(input) {
   push(Number(result.input.actualWuhanArrival), 0);
   push(result.departure, 0);
 
-  // 匀加速：s = 1/2 a t²（t 以分钟计，再除以 60 换成小时）。
+  // 匀加速：按比例取速度，再用平均速度累加路程。
   for (let i = 1; i <= samples; i += 1) {
-    const tau = (result.accelMinutes * i) / samples;
-    push(result.departure + tau, (0.5 * a * tau * tau) / 60);
+    const fraction = i / samples;
+    const speed = v1 * fraction;
+    const tauHours = result.accelHours * fraction;
+    push(result.departure + tauHours * 60, ((0 + speed) / 2) * tauHours);
   }
 
   // 匀速到开始减速。
   const sAccelEnd = result.accelDistance;
   const sCruiseEnd = sAccelEnd + result.cruiseDistance;
-  if (result.cruiseMinutes > 0) {
+  if (result.cruiseHours > 0) {
     push(result.slowStart, sCruiseEnd);
   }
 
   // 匀减速到限速速度。
   for (let i = 1; i <= samples; i += 1) {
-    const tau = (result.decelMinutes * i) / samples;
-    const s = sCruiseEnd + (v1 * tau) / 60 - (0.5 * a * tau * tau) / 60;
-    push(result.slowStart + tau, s);
+    const fraction = i / samples;
+    const speed = v1 - (v1 - v2) * fraction;
+    const tauHours = result.decelHours * fraction;
+    push(result.slowStart + tauHours * 60, sCruiseEnd + ((v1 + speed) / 2) * tauHours);
   }
   const sSlowEnd = sCruiseEnd + result.decelDistance;
 
@@ -286,9 +316,10 @@ export function buildDistanceTimeSeries(input) {
   // 匀减速进站。
   const sBrakeStart = sSlowEnd + result.plateauDistance;
   for (let i = 1; i <= samples; i += 1) {
-    const tau = (result.brakeMinutes * i) / samples;
-    const s = sBrakeStart + (v2 * tau) / 60 - (0.5 * a * tau * tau) / 60;
-    push(result.arrival - result.brakeMinutes + tau, s);
+    const fraction = i / samples;
+    const speed = v2 * (1 - fraction);
+    const tauHours = result.brakeHours * fraction;
+    push(result.arrival - result.brakeMinutes + tauHours * 60, sBrakeStart + ((v2 + speed) / 2) * tauHours);
   }
 
   return {
@@ -298,18 +329,18 @@ export function buildDistanceTimeSeries(input) {
 }
 
 /**
- * 让“约 1 小时”在 50—70 分钟之间摆动，看看估计值有多敏感。
+ * 让“1 小时”在 0.833—1.167 h 之间摆动，看看估计值有多敏感。
  * 这不是置信区间，只是单变量敏感性检查。
  */
-export function estimateRange(input, spread = 10) {
+export function estimateRange(input, spread = 1 / 6) {
   const base = { ...DEFAULTS, ...input };
-  const lo = clamp(base.preSlow - spread, 30, 90);
-  const hi = clamp(base.preSlow + spread, 30, 90);
-  const a = computeEstimate({ ...base, preSlow: lo });
-  const b = computeEstimate({ ...base, preSlow: hi });
-  if (!a.valid || !b.valid) return null;
-  const first = a.arrivalRounded;
-  const second = b.arrivalRounded;
+  const lo = clamp(base.preSlowHours - spread, 0.5, 1.5);
+  const hi = clamp(base.preSlowHours + spread, 0.5, 1.5);
+  const lowResult = computeEstimate({ ...base, preSlowHours: lo });
+  const highResult = computeEstimate({ ...base, preSlowHours: hi });
+  if (!lowResult.valid || !highResult.valid) return null;
+  const first = lowResult.arrivalRounded;
+  const second = highResult.arrivalRounded;
   return {
     min: Math.min(first, second),
     max: Math.max(first, second),

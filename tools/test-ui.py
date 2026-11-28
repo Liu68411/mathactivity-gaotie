@@ -68,6 +68,13 @@ def main():
     check(cdp.ev("document.querySelectorAll('.calc-step').length") == 9, "nine calculation steps")
     check("300 km/h ÷ 350 km/h" in cdp.ev("document.querySelector('#formulaList').textContent"), "speed-change time formula")
     check("16:16:31" in cdp.ev("document.querySelector('#formulaList').textContent"), "arrival formula")
+    check(cdp.ev("document.querySelector('#readoutTime').textContent") == "14:45", "linked readout default time")
+    cdp.ev(
+        "(() => { const svg=document.querySelector('#speedChart'); const r=svg.getBoundingClientRect(); const e=new PointerEvent('pointermove',{clientX:r.left+r.width*0.62,clientY:r.top+120,bubbles:true,pointerType:'mouse'}); svg.dispatchEvent(e); })()"
+    )
+    time.sleep(0.3)
+    check(cdp.ev("document.querySelector('#readoutTime').textContent") != "14:45", "hover updates linked readout")
+    check(cdp.ev("document.querySelectorAll('.chart-cursor').length") == 2, "hover cursor on both charts")
 
     cdp.ev(
         "(() => { const el=document.querySelector('#preSlowHours'); el.value=1.1; el.dispatchEvent(new Event('input',{bubbles:true})); })()"

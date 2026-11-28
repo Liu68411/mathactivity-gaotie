@@ -9,7 +9,7 @@ import {
   formatClock,
   formatHours,
   formatKm,
-} from './model.js?v=20261122-7';
+} from './model.js?v=20261122-9';
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -20,6 +20,10 @@ const state = {
 };
 
 const els = {};
+const chartMeta = { speed: null, distance: null };
+let lastResult = null;
+let lastSeries = null;
+let linkedTime = null;
 let renderQueued = false;
 let toastTimer = null;
 let snowRaf = null;
@@ -50,6 +54,9 @@ function cacheElements() {
   els.distanceChart = $('#distanceChart');
   els.distanceChartCaption = $('#distanceChartCaption');
   els.legendDistanceActual = $('#legendDistanceActual');
+  els.readoutTime = $('#readoutTime');
+  els.readoutSpeed = $('#readoutSpeed');
+  els.readoutDistance = $('#readoutDistance');
 
   els.distanceBar = $('#distanceBar');
   els.distanceBeforeBar = $('#distanceBeforeBar');
@@ -152,6 +159,10 @@ function renderAll() {
   if (state.actualRevealed) {
     renderComparison(result);
   }
+
+  lastResult = result;
+  lastSeries = result.valid ? buildDistanceTimeSeries(state) : null;
+  renderLinkedReadout(result);
 }
 
 function modelLabel() {
@@ -419,6 +430,7 @@ function renderSpeedChart(result) {
   const modelName = modelLabel();
   const actualText = actual ? `绿色虚线是实际到站 ${formatClock(actual)}。` : '实际到站要等“检验”环节再揭晓。';
   els.chartCaption.textContent = `${modelName}：折线下的面积就是路程。${actualText}`;
+  chartMeta.speed = { svg, minT, maxT, L, T, plotW, plotH, x, y, result };
 }
 
 function renderDistanceChart(result) {
@@ -605,6 +617,119 @@ function renderDistanceChart(result) {
       )} 分钟。`
     : '实际到站仍封存在“检验资料”里。';
   els.distanceChartCaption.textContent = `s-t 图的斜率就是速度：越陡越快，水平段表示停站。${actualText}`;
+  chartMeta.distance = { svg, minT, maxT, L, T, plotW, plotH, x, y, result };
+}
+
+function speedAtTime(result, time) {
+  const departure = result.departure;
+  const accelEnd = departure + result.accelMinutes;
+  const slowStart = result.slowStart;
+  const slowEnd = result.slowEnd;
+  const brakeStart = result.arrival - result.brakeMinutes;
+
+  if (time <= departure) return 0;
+  if (time <= accelEnd && result.accelMinutes > 0) {
+    return (state.v1 * (time - departure)) / result.accelMinutes;
+  }
+  if (time <= slowStart) return state.v1;
+  if (time <= slowEnd && result.decelMinutes > 0) {
+    return state.v1 - ((state.v1 - state.v2) * (time - slowStart)) / result.decelMinutes;
+  }
+  if (time <= brakeStart) return state.v2;
+  if (time <= result.arrival && result.brakeMinutes > 0) {
+    return state.v2 * (1 - (time - brakeStart) / result.brakeMinutes);
+  }
+  return 0;
+}
+
+function distanceAtTime(points, time) {
+  if (!points || !points.length) return null;
+  if (time <= points[0].t) return points[0].s;
+  for (let i = 1; i < points.length; i += 1) {
+    if (time <= points[i].t) {
+      const before = points[i - 1];
+      const after = points[i];
+      const span = after.t - before.t;
+      if (span <= 1e-9) return after.s;
+      const ratio = (time - before.t) / span;
+      return before.s + (after.s - before.s) * ratio;
+    }
+  }
+  return points[points.length - 1].s;
+}
+
+function drawChartCursor(type, time, speed, distance) {
+  const meta = chartMeta[type];
+  if (!meta) return;
+  const svg = meta.svg;
+  const t = Math.min(meta.maxT, Math.max(meta.minT, time));
+
+  let group = svg.querySelector('.chart-cursor');
+  if (!group) {
+    group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.setAttribute('class', `chart-cursor${type === 'distance' ? ' chart-cursor--distance' : ''}`);
+    group.innerHTML = '<line></line><circle r="4"></circle>';
+    svg.appendChild(group);
+  }
+
+  const px = meta.x(t);
+  const py = type === 'speed' ? meta.y(speed) : meta.y(distance);
+  const line = group.querySelector('line');
+  const dot = group.querySelector('circle');
+  line.setAttribute('x1', px.toFixed(1));
+  line.setAttribute('y1', meta.T.toFixed(1));
+  line.setAttribute('x2', px.toFixed(1));
+  line.setAttribute('y2', (meta.T + meta.plotH).toFixed(1));
+  dot.setAttribute('cx', px.toFixed(1));
+  dot.setAttribute('cy', py.toFixed(1));
+}
+
+function renderLinkedReadout(result) {
+  if (!result || !result.valid || !lastSeries) {
+    els.readoutTime.textContent = '—';
+    els.readoutSpeed.textContent = '—';
+    els.readoutDistance.textContent = '—';
+    ['speed', 'distance'].forEach((type) => chartMeta[type]?.svg.querySelector('.chart-cursor')?.remove());
+    return;
+  }
+
+  const minTime = Number(result.input.actualWuhanArrival);
+  const maxTime = result.arrival;
+  const fallback = result.slowStart;
+  let time = Number.isFinite(linkedTime) ? linkedTime : fallback;
+  time = Math.min(maxTime, Math.max(minTime, time));
+
+  const speed = speedAtTime(result, time);
+  const distance = distanceAtTime(lastSeries.points, time) ?? 0;
+
+  els.readoutTime.textContent = formatClock(time);
+  els.readoutSpeed.textContent = `${Math.round(speed)} km/h`;
+  els.readoutDistance.textContent = `${distance.toFixed(1)} km`;
+
+  drawChartCursor('speed', time, speed, distance);
+  drawChartCursor('distance', time, speed, distance);
+}
+
+function initChartHover() {
+  $$('.chart-wrap').forEach((wrap) => {
+    wrap.addEventListener('pointermove', (event) => {
+      if (event.pointerType === 'touch') return;
+      const svg = wrap.querySelector('svg');
+      if (!svg) return;
+      const type = svg.id === 'speedChart' ? 'speed' : 'distance';
+      const meta = chartMeta[type];
+      if (!meta) return;
+      const rect = svg.getBoundingClientRect();
+      const svgX = ((event.clientX - rect.left) / rect.width) * 860;
+      const time = meta.minT + ((svgX - meta.L) / meta.plotW) * (meta.maxT - meta.minT);
+      linkedTime = Math.min(meta.maxT, Math.max(meta.minT, time));
+      renderLinkedReadout(lastResult);
+    });
+    wrap.addEventListener('pointerleave', () => {
+      linkedTime = lastResult?.slowStart ?? null;
+      renderLinkedReadout(lastResult);
+    });
+  });
 }
 
 function renderBreakdown(result) {
@@ -1308,6 +1433,7 @@ function init() {
   syncControls();
   bindEvents();
   renderAll();
+  initChartHover();
   initNavObserver();
   initSnow();
 }

@@ -11,8 +11,8 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="assets/hero.jpg">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/style.css?v=20261122-7">
-  <script type="module" src="assets/app.js?v=20261122-7"></script>
+  <link rel="stylesheet" href="assets/style.css?v=20261122-9">
+  <script type="module" src="assets/app.js?v=20261122-9"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -21,7 +21,7 @@
     <div class="wrap header-inner">
       <a class="brand" href="#top" aria-label="回到页面顶部">
         <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" role="img"><path d="M12 2v20M4.2 6.5l15.6 11M19.8 6.5l-15.6 11M12 5.5l3-3M12 5.5l-3-3M12 18.5l3 3M12 18.5l-3 3M5.9 8.3l-4.1.5M5.9 8.3l.4-4.1M18.1 15.7l4.1-.5M18.1 15.7l-.4 4.1M18.1 8.3l4.1.5M18.1 8.3l-.4-4.1M5.9 15.7l-4.1-.5M5.9 15.7l.4 4.1"/></svg>
+          <svg viewBox="0 0 24 24" role="img"><path d="M12 2v20M4.2 6.5l15.6 11M19.8 6.5l-15.6 11M12 5.5l3-3M12 5.5l-3-3M12 18.5l3 3M12 18.5l-3 3M5.9 8.3l-4.1.5M5.9 8.3l.4-4.1M18.1 15.7l4.1-.5M18.1 15.7l-.4 4.1M18.1 8.3l4.1.5M18.1 8.3l-.4-4.1M5.9 15.7l-4.1-.5M5.9 15.7l.4 4.1"></path></svg>
         </span>
         <span class="brand-copy">
           <strong>G80 · 雾雪限速</strong>
@@ -31,14 +31,13 @@
 
       <nav class="site-nav" aria-label="页面导航">
         <a href="#situation" data-nav="situation">情境</a>
-        <a href="#model" data-nav="model">建模</a>
-        <a href="#estimate" data-nav="estimate">估算</a>
+        <a href="#lab" data-nav="lab">控制台</a>
         <a href="#check" data-nav="check">检验</a>
         <a href="#report" data-nav="report">汇报</a>
       </nav>
 
       <button class="icon-button print-trigger" type="button" aria-label="打印学习单">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"></path></svg>
         <span>打印</span>
       </button>
     </div>
@@ -69,9 +68,9 @@
           </p>
 
           <div class="hero-actions">
-            <a class="button button--primary" href="#model">
+            <a class="button button--primary" href="#lab">
               开始估算
-              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"></path></svg>
             </a>
             <a class="button button--ghost" href="#situation">先看已知信息</a>
           </div>
@@ -154,7 +153,7 @@
               说清楚，让家人听懂这个时间是怎么来的。
             </p>
             <div class="story-callout">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a7 7 0 0 0-4 12.7V19h8v-3.3A7 7 0 0 0 12 3Z"/><path d="M9 22h6"/></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a7 7 0 0 0-4 12.7V19h8v-3.3A7 7 0 0 0 12 3Z"></path><path d="M9 22h6"></path></svg>
               <span>可用的数据并不完整：实际发车、限速起止里程和持续时间，任务单都没有给出。</span>
             </div>
           </article>
@@ -238,19 +237,18 @@
       </div>
     </section>
 
-    <section class="section section--tint" id="model" aria-labelledby="model-title">
-      <div class="wrap">
-        <div class="section-head">
-          <div class="section-no">02</div>
-          <div>
-            <p class="section-kicker">建模</p>
-            <h2 id="model-title">把加速和减速，都算成匀变速</h2>
-            <p class="section-lede">所有物理量统一用 km 和 h：速度变化按“0→350 km/h 用 0.25 h”的同一规律换算，只使用平均速度和 v=s/t 两个基础关系。</p>
-          </div>
-        </div>
-
-        <div class="model-grid">
-          <div class="panel assumptions" aria-labelledby="assumptions-title">
+    <section class="section section--tint lab-section" id="lab" aria-labelledby="lab-title">
+  <div class="wrap">
+    <div class="section-head lab-head">
+      <div class="section-no">02</div>
+      <div>
+        <p class="section-kicker">控制台</p>
+        <h2 id="lab-title">左边调数据，右边两张图一起动</h2>
+        <p class="section-lede">拖动停站、减速时刻和两段速度，v-t 图、s-t 图、结果卡和下方表格同步更新；把鼠标移到任意一张图上，还能读取同一时刻的速度与累计路程。</p>
+      </div>
+    </div>
+    <div class="lab-grid">
+      <aside class="lab-side" id="labSide" aria-label="模型参数与实时结果"><div class="panel assumptions" aria-labelledby="assumptions-title">
             <div class="panel-head">
               <div>
                 <h3 id="assumptions-title">假设面板</h3>
@@ -315,7 +313,7 @@
             </div>
 
             <div class="assumption-note">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8h.01"></path></svg>
               <p>默认停站 0.05 h，沿用武汉站计划停站时间；实际发车时刻任务单没有给出。区间里程固定为 536 km。</p>
             </div>
           </div>
@@ -342,41 +340,16 @@
             </div>
             <p class="result-hint">先把这个时间记下来，再去拆“检验资料”。</p>
           </aside>
+        </aside>
+      <div class="lab-main">
+        <div class="linked-readout" id="linkedReadout" aria-live="polite">
+          <div class="linked-badge"><i></i>图线联动</div>
+          <div class="linked-metric"><span>时刻</span><strong id="readoutTime">14:45</strong></div>
+          <div class="linked-metric"><span>速度</span><strong id="readoutSpeed">300 km/h</strong></div>
+          <div class="linked-metric"><span>累计路程</span><strong id="readoutDistance">267.9 km</strong></div>
+          <p>在图上移动鼠标，两张图锁定同一时刻</p>
         </div>
-
-        <div class="print-summary" id="printSummary" aria-hidden="true"></div>
-      </div>
-    </section>
-
-    <section class="section" id="estimate" aria-labelledby="estimate-title">
-      <div class="wrap">
-        <div class="section-head">
-          <div class="section-no">03</div>
-          <div>
-            <p class="section-kicker">估算</p>
-            <h2 id="estimate-title">先算出一个能报给家人的时间</h2>
-            <p class="section-lede">用速度—时间图、路程—时间图和一张分段表，把“怎么估的”讲清楚。</p>
-          </div>
-        </div>
-
-        <article class="answer-card">
-          <div class="answer-copy">
-            <span class="answer-kicker">给家人报个到站时间</span>
-            <p class="answer-line">
-              “G80 大概 <strong id="bigArrival">16:17</strong> 到郑州东，
-              比计划晚 <strong id="bigDelay">51</strong> 分钟左右。”
-            </p>
-            <p class="answer-sub" id="answerSub">
-              这是按停站 0.05 h、匀加速到 300 km/h、出站 1.00 h 后匀减速到 180 km/h 得到的估计。
-            </p>
-          </div>
-          <div class="answer-stamp" aria-hidden="true">
-            <span>ESTIMATE</span>
-            <strong>约</strong>
-          </div>
-        </article>
-
-        <div class="chart-card">
+        <div id="slotVt"><div class="chart-card">
           <div class="chart-head">
             <div>
               <h3>速度—时间草图</h3>
@@ -400,7 +373,8 @@
           </p>
         </div>
 
-        <div class="chart-card">
+        </div>
+        <div id="slotSt"><div class="chart-card">
           <div class="chart-head">
             <div>
               <h3>路程—时间图（s-t）</h3>
@@ -424,7 +398,28 @@
           </p>
         </div>
 
-        <div class="breakdown-grid">
+        </div>
+      </div>
+    </div>
+    <div id="slotAnswer"><article class="answer-card">
+          <div class="answer-copy">
+            <span class="answer-kicker">给家人报个到站时间</span>
+            <p class="answer-line">
+              “G80 大概 <strong id="bigArrival">16:17</strong> 到郑州东，
+              比计划晚 <strong id="bigDelay">51</strong> 分钟左右。”
+            </p>
+            <p class="answer-sub" id="answerSub">
+              这是按停站 0.05 h、匀加速到 300 km/h、出站 1.00 h 后匀减速到 180 km/h 得到的估计。
+            </p>
+          </div>
+          <div class="answer-stamp" aria-hidden="true">
+            <span>ESTIMATE</span>
+            <strong>约</strong>
+          </div>
+        </article>
+
+        </div>
+    <div id="slotBreakdown"><div class="breakdown-grid">
           <article class="distance-card">
             <div class="card-heading">
               <h3>536 km 怎么分</h3>
@@ -451,7 +446,8 @@
           </article>
         </div>
 
-        <div class="table-card">
+        </div>
+    <div id="slotTable"><div class="table-card">
           <div class="card-heading">
             <h3>分段记录表</h3>
             <span class="tag tag--muted">每个数都带单位</span>
@@ -473,12 +469,13 @@
           </div>
         </div>
       </div>
-    </section>
-
-    <section class="section section--tint" id="check" aria-labelledby="check-title">
+    <div id="slotPrint"><div class="print-summary" id="printSummary" aria-hidden="true"></div>
+      </div>
+  </div>
+</section><section class="section section--tint" id="check" aria-labelledby="check-title">
       <div class="wrap">
         <div class="section-head">
-          <div class="section-no">04</div>
+          <div class="section-no">03</div>
           <div>
             <p class="section-kicker">检验</p>
             <h2 id="check-title">实际记录来了，差在哪？</h2>
@@ -488,7 +485,7 @@
 
         <div class="sealed-card" id="sealedCard">
           <div class="sealed-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></svg>
+            <svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"></path></svg>
           </div>
           <div>
             <span class="sealed-kicker">检验资料 · 未拆封</span>
@@ -497,7 +494,7 @@
           </div>
           <button class="button button--primary" type="button" id="revealBtn">
             领取检验资料
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"/></svg>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 5l5 5-5 5"></path></svg>
           </button>
         </div>
 
@@ -594,7 +591,7 @@
     <section class="section" id="report" aria-labelledby="report-title">
       <div class="wrap">
         <div class="section-head">
-          <div class="section-no">05</div>
+          <div class="section-no">04</div>
           <div>
             <p class="section-kicker">汇报</p>
             <h2 id="report-title">用一张图、一张表，说清你的估计</h2>
@@ -618,11 +615,11 @@
 
             <div class="report-actions">
               <button class="button button--primary" type="button" id="copyBtn">
-                <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="10" height="11" rx="2"/><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="7" y="7" width="10" height="11" rx="2"></rect><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
                 复制汇报稿
               </button>
               <button class="button button--ghost-dark print-trigger" type="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"></path></svg>
                 打印学习单
               </button>
             </div>
@@ -654,7 +651,7 @@
       <div>
         <div class="footer-brand">
           <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M12 2v20M4.2 6.5l15.6 11M19.8 6.5l-15.6 11M12 5.5l3-3M12 5.5l-3-3M12 18.5l3 3M12 18.5l-3 3"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M12 2v20M4.2 6.5l15.6 11M19.8 6.5l-15.6 11M12 5.5l3-3M12 5.5l-3-3M12 18.5l3 3M12 18.5l-3 3"></path></svg>
           </span>
           <div><strong>雾雪限速后，几点能到站？</strong><span>G80 · 专题三 · 高铁综合与实践</span></div>
         </div>
